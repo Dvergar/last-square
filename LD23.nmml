@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+
+  <app title="LD23" file="LD23" main="LD23"/>
+  
+  <set name="fullscreen" if="target_webos" />
+  <set name="fullscreen" if="target_ios" />
+  <set name="fullscreen" if="target_android" />
+    
+  <window width="800" height="600" fps="30" orientation="portrait" resizable="true" background="0x424242"/>
+  <window width="0" height="0" if="fullscreen" />
+ 
+  <set name="BUILD_DIR" value="Export" />
+  <set name="SWF_VERSION" value="11" />
+  <classpath name="Source" />
+  
+  <haxedef name="fdb" />
+  <haxelib name="nme" />
+
+  <assets path="Assets" rename="assets" include="*"/>
+
+
+  <ndll name="std" />
+  <ndll name="regexp" />
+  <ndll name="zlib" />
+  <ndll name="nme" haxelib="nme" />
+
+</project>

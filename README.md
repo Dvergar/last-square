@@ -1,1 +1,3 @@
 # last-square
+
+Reviving an old Ludum dare game...
