@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+  
+  <meta title="The last square" package="com.caribou.ld23" version="1.0.0" company="OpenFL" />
+  <app main="LD23" path="Export" file="ld23" />
+  
+  <source path="Source" />
+  
+  <haxelib name="openfl" />
+  
+  <assets path="Assets" rename="assets" />
+  
+</project>

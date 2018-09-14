@@ -1,13 +1,13 @@
 package;
 
-import nme.display.Bitmap;
-import nme.display.Sprite;
-import nme.display.StageAlign;
-import nme.display.StageScaleMode;
-import nme.Assets;
-import nme.Lib;
-import nme.text.TextField;
-import nme.text.TextFormat;
+import openfl.display.Bitmap;
+import openfl.display.Sprite;
+import openfl.display.StageAlign;
+import openfl.display.StageScaleMode;
+import openfl.Assets;
+import openfl.Lib;
+import openfl.text.TextField;
+import openfl.text.TextFormat;
 import flash.events.KeyboardEvent;
 import flash.events.MouseEvent;
 import flash.ui.Keyboard;
@@ -21,7 +21,7 @@ import Std;
 
 
 class TextBlock extends Sprite {
-    private var text:nme.text.TextField;
+    private var text:openfl.text.TextField;
 
     public function new(y, msg:String, color:Int, nick:String) {
         super();
@@ -48,7 +48,7 @@ class TextBlock extends Sprite {
         this.graphics.beginFill(color);
         this.graphics.drawRect(0, 0, 230, 20);
         this.graphics.endFill();
-        this.y = nme.Lib.current.stage.stageHeight - 40;
+        this.y = openfl.Lib.current.stage.stageHeight - 40;
         // this.width = 500;
     }
 
@@ -78,7 +78,7 @@ class TextBlock extends Sprite {
 
 
 class Chat extends Sprite {
-    private var text:nme.text.TextField;
+    private var text:openfl.text.TextField;
     private var socket:Socket;
     private var messages:Array<TextBlock>;
 
@@ -91,17 +91,17 @@ class Chat extends Sprite {
         var format = new TextFormat (font.fontName); 
         format.size = 10;
 
-        this.text = new nme.text.TextField();
+        this.text = new openfl.text.TextField();
         this.text.defaultTextFormat = format;
         this.text.embedFonts = true;
         this.text.x = 0;
         this.text.height = 20;
         this.text.width = 230;
-        this.text.y = nme.Lib.current.stage.stageHeight - this.text.height;
+        this.text.y = openfl.Lib.current.stage.stageHeight - this.text.height;
         this.text.border = true;
         this.text.borderColor = 0x000000;
         this.text.wordWrap = true;
-        this.text.type = nme.text.TextFieldType.INPUT;
+        this.text.type = openfl.text.TextFieldType.INPUT;
         this.text.text = "Hello !";
         this.text.maxChars = 28;
         this.addChild(this.text);
@@ -113,7 +113,7 @@ class Chat extends Sprite {
         switch(event.keyCode){
             case Keyboard.ENTER:
                 if(this.text.text.length > 0){
-                    socket.writeByte(MESSAGE);
+                    socket.writeByte(Game.MESSAGE);
                     socket.writeUTF(this.text.text);
                     this.text.text = "";
                 }
@@ -121,7 +121,7 @@ class Chat extends Sprite {
     }
 
     public function message(nick:String, msg:String, color:Int) {
-        var block = new TextBlock(nme.Lib.current.stage.stageHeight, msg, color, nick);
+        var block = new TextBlock(openfl.Lib.current.stage.stageHeight, msg, color, nick);
         this.addChild(block);
 
         for(textBlock in this.messages) {
@@ -154,7 +154,7 @@ class Player extends Sprite {
         this.graphics.clear();
         // this.graphics.lineStyle(borderSize, borderColor);
         this.graphics.beginFill(this.color);
-        this.graphics.drawRect(nme.Lib.current.stage.stageWidth - 150,
+        this.graphics.drawRect(openfl.Lib.current.stage.stageWidth - 150,
                                                         0, 150, 20);
         this.graphics.endFill();  
 
@@ -175,7 +175,7 @@ class Player extends Sprite {
         text.embedFonts = true;
         text.text = this.nick;
         text.textColor = color;
-        text.x = nme.Lib.current.stage.stageWidth - 120 - offset;
+        text.x = openfl.Lib.current.stage.stageWidth - 120 - offset;
         text.y = offset;
         text.selectable = false;
         return text;
@@ -356,7 +356,7 @@ class Game extends Sprite {
     private var startTime:Int;
     private var id:Int;
     private var myPlayer:Player;
-    private var players:Hash<Player>;
+    private var players:Map<String, Player>;
     private var dots:Array<Array<Dot>>;
     private var square:Sprite;
     private var theDot:Dot;
@@ -368,8 +368,8 @@ class Game extends Sprite {
     private var LFenergy:Float;
     private var chat:Chat;
     private var winText:TextField;
-    private var tick:nme.media.Sound;
-    private var vlam:nme.media.Sound;
+    private var tick:openfl.media.Sound;
+    private var vlam:openfl.media.Sound;
     private var linkLD:Link;
     private var color:Int;
 
@@ -377,7 +377,7 @@ class Game extends Sprite {
         super();
         this.nick = nick;
         this.id = 0;
-        this.players = new Hash();
+        this.players = new Map();
         this.dots = createDots();
         this.energy = 0;
         this.LFenergy = 0;
@@ -420,8 +420,8 @@ class Game extends Sprite {
         this.winText.embedFonts = true;
         this.winText.text = nick + " Won";
         this.winText.width = 800;
-        this.winText.x = nme.Lib.current.stage.stageWidth / 2 - 100;
-        this.winText.y = nme.Lib.current.stage.stageHeight / 2;
+        this.winText.x = openfl.Lib.current.stage.stageWidth / 2 - 100;
+        this.winText.y = openfl.Lib.current.stage.stageHeight / 2;
         this.addChild(this.winText);
 
         this.winTimer = new haxe.Timer(3000);
@@ -436,14 +436,14 @@ class Game extends Sprite {
     private function popEnergyBar(color:Int) {
         this.energyBar = new Bar(color, 358, 40);
         this.energyBar.x = 260;
-        this.energyBar.y = nme.Lib.current.stage.stageHeight - this.energyBar.height;
+        this.energyBar.y = openfl.Lib.current.stage.stageHeight - this.energyBar.height;
         this.addChild(this.energyBar);
 
         if(Game.LAGFREE) {
             // this.energyBarLF = new Bar(0x333132, 358, 20);  // Debug
             this.energyBarLF = new Bar(color, 358, 40);
             this.energyBarLF.x = 260;
-            this.energyBarLF.y = nme.Lib.current.stage.stageHeight - this.energyBarLF.height;
+            this.energyBarLF.y = openfl.Lib.current.stage.stageHeight - this.energyBarLF.height;
             this.addChild(this.energyBarLF);
         }
     }
@@ -500,7 +500,7 @@ class Game extends Sprite {
 
     private function onMouseDown(event:MouseEvent) {
         if(event.target == this.linkLD) {
-            nme.Lib.getURL(new flash.net.URLRequest("http://www.ludumdare.com/compo/ludum-dare-23/?action=preview&uid=4227"),"_blank");
+            openfl.Lib.getURL(new flash.net.URLRequest("http://www.ludumdare.com/compo/ludum-dare-23/?action=preview&uid=4227"),"_blank");
         }
 
         for(posx in 0...this.dots.length) {
@@ -705,13 +705,13 @@ class LD23 extends Sprite {
         this.login = new TextField();
         this.login.defaultTextFormat = format;
         this.login.embedFonts = true;
-        this.login.type = nme.text.TextFieldType.INPUT;
+        this.login.type = openfl.text.TextFieldType.INPUT;
         this.login.text = "Guest";
         this.login.maxChars = 8;
         this.login.height = 20;
         this.login.border = true;
-        this.login.x = nme.Lib.current.stage.stageWidth / 2 - this.login.width / 2;
-        this.login.y = nme.Lib.current.stage.stageWidth / 2 - 100;
+        this.login.x = openfl.Lib.current.stage.stageWidth / 2 - this.login.width / 2;
+        this.login.y = openfl.Lib.current.stage.stageWidth / 2 - 100;
         this.addChild(this.login);
 
         // this.button = new Link();
