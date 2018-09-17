@@ -8,15 +8,15 @@ import openfl.Assets;
 import openfl.Lib;
 import openfl.text.TextField;
 import openfl.text.TextFormat;
-import flash.events.KeyboardEvent;
-import flash.events.MouseEvent;
-import flash.ui.Keyboard;
-import flash.events.Event;
-import flash.events.IOErrorEvent;
-import flash.events.SecurityErrorEvent;
-import flash.net.Socket;
-import flash.events.ProgressEvent;
-import flash.external.ExternalInterface;
+import openfl.events.KeyboardEvent;
+import openfl.events.MouseEvent;
+import openfl.ui.Keyboard;
+import openfl.events.Event;
+import openfl.events.IOErrorEvent;
+import openfl.events.SecurityErrorEvent;
+import openfl.net.Socket;
+import openfl.events.ProgressEvent;
+import openfl.external.ExternalInterface;
 import Std;
 
 
@@ -500,7 +500,7 @@ class Game extends Sprite {
 
     private function onMouseDown(event:MouseEvent) {
         if(event.target == this.linkLD) {
-            openfl.Lib.getURL(new flash.net.URLRequest("http://www.ludumdare.com/compo/ludum-dare-23/?action=preview&uid=4227"),"_blank");
+            openfl.Lib.getURL(new openfl.net.URLRequest("http://www.ludumdare.com/compo/ludum-dare-23/?action=preview&uid=4227"),"_blank");
         }
 
         for(posx in 0...this.dots.length) {
