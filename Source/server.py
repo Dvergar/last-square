@@ -43,7 +43,7 @@ class BinaryStream:
         self.int_struct = struct.Struct("!i")
         self.short_struct = struct.Struct("!h")
 
-    def put_data(self, data):
+    def put_data(self, data:str):
         self.data = data
         self.len_data = len(data)
         self.pos = 0
@@ -120,7 +120,7 @@ def eat_dot(_id):
 class Tower:
     _registry = []
 
-    def __init__(self, x, y, world, owner):
+    def __init__(self, x:int, y:int, world, owner):
         self._registry.append(self)
         self.owner = owner
         self.world = world
@@ -206,10 +206,10 @@ class Connection(WebSocketServerProtocol):
                         (-1, -1)
                         ]
 
-    def enc(self, string):
+    def enc(self, string:str):
         return string.encode("utf-8")
 
-    def dec(self, string):
+    def dec(self, string:str):
         return string.decode("utf-8")
 
     def onMessage(self, data, isBinary):
@@ -259,14 +259,17 @@ class Connection(WebSocketServerProtocol):
             if msg_type == TOWER:
                 log("Tower create")
                 posx, posy = bs.read_byte(), bs.read_byte()
+                print(posx, posy)
                 if self.energy_max // 25 > len(self.towers):
                     try:
+                        print("ok")
                         buildable = True
                         world = self.factory.world
                         for (dx, dy) in self.checklist:
                             if world[posx + dx, posy + dy] != self.id:
                                 buildable = False
                         if buildable:
+                            print("buildable")
                             broadcast(struct.pack("!4B", TOWER, 1, posx, posy))
                             self.towers.append(Tower(posx, posy, world, self))
                     except KeyError:
@@ -291,7 +294,7 @@ class Connection(WebSocketServerProtocol):
             self.disconnect()
 
     def onClose(self, wasClean, code, reason):
-        log("Connection lost..." + reason)
+        log("Connection lost...")
         for tower in self.towers:
             tower.destroy()
         if self in self._registry.values():
@@ -406,7 +409,7 @@ class Connection(WebSocketServerProtocol):
     #                 broadcast(struct.pack(chatstruct, MESSAGE, self.id,
     #                                             len(chatmsg), chatmsg))
 
-    def push_dot(self, posx, posy):
+    def push_dot(self, posx:int, posy:int):
         world = self.factory.world
         if (posx, posy) in world:
             old_owner_id = world[(posx, posy)]
@@ -451,7 +454,7 @@ class Connection(WebSocketServerProtocol):
 
     def get_datas_connection(self):
         return struct.pack("!BBH8siB", CONNECTION, self.id, 8,
-                                        self.nick, self.color, 0)
+                                        self.enc(self.nick), self.color, 0)
 
     def get_datas_update(self):
         return struct.pack("!3B", UPDATE, int(self.energy), int(self.energy_max))
