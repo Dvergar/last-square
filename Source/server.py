@@ -86,7 +86,6 @@ class BinaryStream:
         self.pos += size
         string = self.data[self.pos:self.pos + length]
         string, = struct.unpack("!" + str(length) + "s", string)
-        # string = string.decode("utf-8")
         self.pos += length
         return string
 
@@ -112,7 +111,6 @@ def read_policy():
 
 
 def eat_dot(_id):
-    # pass
     if _id:
         Connection._registry[_id].dots -= 1
 
@@ -180,7 +178,6 @@ class Tower:
         broadcast(struct.pack("!4b", TOWER, 0, self.x, self.y))
 
 
-# class Connection(Protocol):
 class Connection(WebSocketServerProtocol):
     _registry = {}
     _ids = list(range(1, 255))
@@ -206,10 +203,10 @@ class Connection(WebSocketServerProtocol):
                         (-1, -1)
                         ]
 
-    def enc(self, string:str):
+    def enc(self, string:str) -> bytes:
         return string.encode("utf-8")
 
-    def dec(self, string:str):
+    def dec(self, string:bytes) -> str:
         return string.decode("utf-8")
 
     def onMessage(self, data, isBinary):
@@ -313,101 +310,10 @@ class Connection(WebSocketServerProtocol):
         self.towers = []
         self.dots = 0
 
-    # def connectionMade(self):
-    #     log("connection made")
-    #     try:
-    #         self.id = self._ids.pop()
-    #     except IndexError:
-    #         self.transport.write(struct.pack("!b", FULL))
-    #         self.disconnect()
-
-    # def connectionLost(self, reason):
-    #     log("Connection lost...")
-    #     for tower in self.towers:
-    #         tower.destroy()
-    #     if self in self._registry.values():
-    #         log("...from " + self.nick)
-    #         broadcast(struct.pack("!BB", DISCONNECTION, self.id))
-    #     self.disconnect()  # Here and not above !
-    #     for (posx, posy), _id in self.factory.world.items():
-    #         if _id == self.id:
-    #             self.factory.world[posx, posy] = 0
-    #             broadcast(struct.pack("!4B", DOT_COLOR, 0, posx, posy))
-
     def disconnect(self):
         self._ids.append(self.id)
         if self in self._registry.values():
             del self._registry[self.id]
-
-
-
-    # def dataReceived(self, data):
-    #     if data == "<policy-file-request/>\x00":
-    #         log("Policy file request")
-    #         self.transport.write(read_policy() + "\0")
-    #     else:
-    #         bs.put_data(data)
-
-    #         while bs.working():
-    #             msg_type = bs.read_byte()
-
-    #             if msg_type == CONNECTION:
-    #                 # Here to prevent client receiving other clients datas before init
-    #                 self._registry[self.id] = self
-    #                 self.tosend = ""
-    #                 self.nick = bs.read_UTF()
-    #                 self.color = random.randint(0, 0xFFFFFF)
-    #                 self.REALLY_connected = 1
-    #                 log("Connection from " + self.nick)
-
-    #                 # send connected players data
-    #                 for connection in Connection._registry.values():
-    #                     if connection.REALLY_connected:
-    #                         if connection != self:
-    #                             # Send players to me
-    #                             self.send(connection.get_datas_connection())
-    #                             # Send me to players
-    #                             connection.send(self.get_datas_connection())
-    #                         else:
-    #                             # Send me to me
-    #                             self.send(struct.pack("!BBH8siB", CONNECTION,
-    #                                                     self.id, 8,
-    #                                                     self.nick, self.color, 1))
-
-    #                 # map
-    #                 exp_world = self.factory.get_world()
-    #                 self.send(struct.pack("!B" + str(SIZE ** 2) + "B",
-    #                                                 MAP, *exp_world))
-
-    #             if msg_type == DOT_COLOR:
-    #                 posx, posy = bs.read_byte(), bs.read_byte()
-    #                 if self.energy > DOT_COST:
-    #                     self.push_dot(posx, posy)
-    #                 else:
-    #                     self.temp_dots.append((posx, posy))
-
-    #             if msg_type == TOWER:
-    #                 log("Tower create")
-    #                 posx, posy = bs.read_byte(), bs.read_byte()
-    #                 if self.energy_max // 25 > len(self.towers):
-    #                     try:
-    #                         buildable = True
-    #                         world = self.factory.world
-    #                         for (dx, dy) in self.checklist:
-    #                             if world[posx + dx, posy + dy] != self.id:
-    #                                 buildable = False
-    #                         if buildable:
-    #                             broadcast(struct.pack("!4B", TOWER, 1, posx, posy))
-    #                             self.towers.append(Tower(posx, posy, world, self))
-    #                     except KeyError:
-    #                         pass
-
-    #             if msg_type == MESSAGE:
-    #                 chatmsg = bs.read_UTF()
-    #                 log(self.nick + " > " + chatmsg)
-    #                 chatstruct = "!BBH" + str(len(chatmsg)) + "s"
-    #                 broadcast(struct.pack(chatstruct, MESSAGE, self.id,
-    #                                             len(chatmsg), chatmsg))
 
     def push_dot(self, posx:int, posy:int):
         world = self.factory.world
