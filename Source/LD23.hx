@@ -200,8 +200,8 @@ class Dot extends Sprite {
     public function new(x, y) {
         super();
         this.createDot(DEFAULT_COLOR, DEFAULT_BORDER_COLOR, DEFAULT_BORDER_SIZE);
-        this.x = 260 + x * 12;
-        this.y = 100 + y * 12;
+        this.x = 260 + x * 8;
+        this.y = 100 + y * 8;
         this.id = 0;
         this.color = DEFAULT_COLOR;
         this.dotTimer = new haxe.Timer(1);
@@ -209,7 +209,8 @@ class Dot extends Sprite {
 
     private function createDot(color:Int, borderColor:Int, borderSize:Int) {
         this.graphics.clear();
-        this.graphics.lineStyle(borderSize, borderColor);
+        // this.graphics.lineStyle(borderSize, borderColor);
+        this.graphics.lineStyle(0, borderColor);
         this.graphics.beginFill(color);
         this.graphics.drawRect(0, 0, 8, 8);
         this.graphics.endFill();  
@@ -224,11 +225,11 @@ class Dot extends Sprite {
     }
     public function focusDot(color:Int) {
         createDot(color, DEFAULT_BORDER_COLOR, DEFAULT_BORDER_SIZE);
-        if(Game.LAGFREE) {
+        // if(Game.LAGFREE) {
             this.alpha = 0.5;
             this.dotTimer = new haxe.Timer(2000);
             this.dotTimer.run = this.resetDot;
-        }
+        // }
     }
 
     private function resetDot() {

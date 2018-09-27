@@ -3,6 +3,7 @@
   
   <meta title="The last square" package="com.caribou.ld23" version="1.0.0" company="OpenFL" />
   <app main="LD23" path="Export" file="ld23" />
+  <window width="800" height="600" background="#ff79bd9a" fullscreen="false" resizable="false" />
   
   <source path="Source" />
   
