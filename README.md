@@ -4,5 +4,7 @@ Reviving an old Ludum dare game...
 
 - [ ] Redo the socket data buffering (what was that !?)
 - [ ] Basic graphic redesign
-- [ ] Responsive or fixed resolution
+- [x] Responsive or fixed resolution
 - [ ] Refactor everything
+
+PS : Be careful, that's some unsexy jam code.

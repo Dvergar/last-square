@@ -188,9 +188,10 @@ class Player extends Sprite {
 
 
 class Dot extends Sprite {
-    public static var DEFAULT_COLOR = 0x737373;
+    public static var DEFAULT_COLOR = 0x542437;
     public static var DEFAULT_BORDER_COLOR = 0xE8E8E8;
     public static var DEFAULT_BORDER_SIZE = 1;
+    public static var DOT_SIZE = 16;
     public var id:Int;
     private var color:Int;
     private var towerTimer:haxe.Timer;
@@ -200,8 +201,8 @@ class Dot extends Sprite {
     public function new(x, y) {
         super();
         this.createDot(DEFAULT_COLOR, DEFAULT_BORDER_COLOR, DEFAULT_BORDER_SIZE);
-        this.x = 260 + x * 8;
-        this.y = 100 + y * 8;
+        this.x = 260 + x * DOT_SIZE;
+        this.y = 100 + y * DOT_SIZE;
         this.id = 0;
         this.color = DEFAULT_COLOR;
         this.dotTimer = new haxe.Timer(1);
@@ -210,9 +211,8 @@ class Dot extends Sprite {
     private function createDot(color:Int, borderColor:Int, borderSize:Int) {
         this.graphics.clear();
         // this.graphics.lineStyle(borderSize, borderColor);
-        this.graphics.lineStyle(0, borderColor);
         this.graphics.beginFill(color);
-        this.graphics.drawRect(0, 0, 8, 8);
+        this.graphics.drawRect(0, 0, DOT_SIZE, DOT_SIZE);
         this.graphics.endFill();  
     }
 
@@ -348,7 +348,7 @@ class Game extends Sprite {
     public static var TOWER = 7;
     public static var FULL = 8;
     public static var WIN = 9;
-    private static var SIZE = 30;
+    private static var SIZE = 25;
     private static var DOT_COST = 10;
     public static var LAGFREE = true;
 
@@ -500,14 +500,10 @@ class Game extends Sprite {
     }
 
     private function onMouseDown(event:MouseEvent) {
-        if(event.target == this.linkLD) {
-            openfl.Lib.getURL(new openfl.net.URLRequest("http://www.ludumdare.com/compo/ludum-dare-23/?action=preview&uid=4227"),"_blank");
-        }
-
         for(posx in 0...this.dots.length) {
             for(posy in 0...this.dots[posx].length) {
                 var dot = this.dots[posx][posy];
-                if(event.target == dot){
+                if(event.target == dot){  // PLEASE...
                     if(dot.id == this.id) {
                         socket.writeByte(TOWER);
                         socket.writeByte(posx);
