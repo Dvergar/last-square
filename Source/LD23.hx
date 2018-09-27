@@ -692,8 +692,7 @@ class LD23 extends Sprite {
     public function new() {
         super();
         this.intro = new Bitmap(Assets.getBitmapData("assets/intro.png"));
-        this.addChild(this.intro);
-        this.addEventListener(MouseEvent.CLICK, onMouseClick);
+        popLogin();
     }
 
     private function popLogin() {
@@ -714,27 +713,11 @@ class LD23 extends Sprite {
         this.login.y = openfl.Lib.current.stage.stageWidth / 2 - 100;
         this.addChild(this.login);
 
-        // this.button = new Link();
-        // this.button.x = 370;
-        // this.button.y = 100;
-        // this.addChild(this.button);
-
         this.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
     }
 
     private function onMouseClick(event:MouseEvent) {
-        // trace(event.target);
-        // if(event.target == this.button) {
-        //     this.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
-        //     Lib.current.removeChild(this);
-        //     Lib.current.addChild(new Game(this.login.text));
-        //     this.removeEventListener(MouseEvent.CLICK, onMouseClick);
-        // }
-        // else {
-        this.removeChild(this.intro);
-        this.removeEventListener(MouseEvent.CLICK, onMouseClick);
         popLogin();
-        // }
     }
 
     private function onKeyDown(event:KeyboardEvent) {
