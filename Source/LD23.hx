@@ -192,19 +192,19 @@ class Tile extends Sprite {
     public function new(x, y, color)
     {
         super();
-        // this.x = Game.BOARD_MARGIN_X + x * Dot.DOT_SIZE;
-        // this.y = Game.BOARD_MARGIN_Y + y * Dot.DOT_SIZE;
+        this.x = Game.BOARD_MARGIN_X + x * Dot.DOT_SIZE;
+        this.y = Game.BOARD_MARGIN_Y + y * Dot.DOT_SIZE;
 
 
 
         this.graphics.clear();
-        this.graphics.beginFill(0x542437);
-        // this.graphics.drawRect(0, 0, Dot.DOT_SIZE, Dot.DOT_SIZE);
-        this.graphics.drawRect(0, 0, 100, 100);
+        this.graphics.beginFill(0xd95b43);
+        this.graphics.drawRect(0, 0, Dot.DOT_SIZE, Dot.DOT_SIZE);
+        // this.graphics.drawRect(0, 0, 100, 100);
         this.graphics.endFill();
 
-        this.x = 50;
-        this.y = 50;
+        // this.x = 50;
+        // this.y = 50;
     }
 }
 
@@ -341,7 +341,7 @@ class Game extends Sprite {
     private static var DOT_COST = 10;
     public static var LAGFREE = true;
     public static var BOARD_MARGIN_X = 260;
-    public static var BOARD_MARGIN_Y = 100;
+    public static var BOARD_MARGIN_Y = 60;
 
     private var socket:Socket;
     private var nick:String;
@@ -460,15 +460,19 @@ class Game extends Sprite {
                 yArray.push(dot);
             }
         }
-        return xArray;
 
         // CONTOUR
         for(x in 0...SIZE) {
-            var tile = new Tile(x - 200, 20, 0xd95b43);
-            trace("ok");
-            this.addChild(tile);
-            a.push(tile);
+            this.addChild(new Tile(x, -1, 0xd95b43));
+            this.addChild(new Tile(x, SIZE, 0xd95b43));
         }
+
+        for(y in 0...SIZE) {
+            this.addChild(new Tile(-1, y, 0xd95b43));
+            this.addChild(new Tile(SIZE, y, 0xd95b43));
+        }
+
+        return xArray;
     }
 
     private function onMouseOver(event:MouseEvent) {
@@ -614,6 +618,10 @@ class Game extends Sprite {
                         }
                     }
                 }
+
+                // ATTACH EVENTS
+                Lib.current.stage.addEventListener(MouseEvent.MOUSE_OVER, onMouseOver);
+                Lib.current.stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
             }
 
             if(msgType == DOT_COLOR) {
@@ -675,8 +683,6 @@ class Game extends Sprite {
 
         socket.writeByte(CONNECTION);
         socket.writeUTF(this.nick);
-        Lib.current.stage.addEventListener(MouseEvent.MOUSE_OVER, onMouseOver);
-        Lib.current.stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
     }
 
     private function onClose(event:Event) {
@@ -721,20 +727,28 @@ class LD23 extends Sprite {
         this.addChild(this.login);
 
         this.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+        this.addEventListener(MouseEvent.CLICK, onMouseClick);
+    }
+
+    private function popGame() {
+        this.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+        Lib.current.removeChild(this);
+        Lib.current.addChild(new Game(this.login.text));
     }
 
     private function onMouseClick(event:MouseEvent) {
-        popLogin();
+        // DEBUG
+        popGame();
     }
 
     private function onKeyDown(event:KeyboardEvent) {
         switch(event.keyCode){
             case Keyboard.ENTER:
-                this.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
-                Lib.current.removeChild(this);
-                Lib.current.addChild(new Game(this.login.text));
+                popGame();
         }
     }
+
+
 
     public static function main() {
         Lib.current.addChild(new LD23());

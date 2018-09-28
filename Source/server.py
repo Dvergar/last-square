@@ -10,6 +10,7 @@ from twisted.python import log
 # from twisted.web import static, server
 
 from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketServerProtocol
+import randomcolor
 # factory = WebSocketServerFactory()
 # factory.protocol = MyServerProtocol
 
@@ -222,7 +223,9 @@ class Connection(WebSocketServerProtocol):
                 self._registry[self.id] = self
                 self.tosend = b''
                 self.nick = bs.read_UTF().decode("utf-8")
-                self.color = random.randint(0, 0xFFFFFF)
+                # self.color = random.randint(0, 0xFFFFFF)
+                color, = randomcolor.RandomColor().generate(luminosity="light")
+                self.color = int("0x" + color[1:], 16)
                 self.REALLY_connected = 1
                 print(self.nick)
                 log("Connection from " + str(self.nick))
