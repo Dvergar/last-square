@@ -2,8 +2,8 @@ package;
 
 import openfl.display.Bitmap;
 import openfl.display.Sprite;
+import openfl.display.Shape;
 import openfl.display.StageAlign;
-import openfl.display.StageScaleMode;
 import openfl.Assets;
 import openfl.Lib;
 import openfl.text.TextField;
@@ -26,13 +26,6 @@ class TextBlock extends Sprite {
 
     public function new(y, msg:String, color:Int, nick:String) {
         super();
-        // var font = Assets.getFont("assets/FFFFT___.TTF"); 
-        // var format = new TextFormat (font.fontName); 
-        // var text:TextField = new TextField();
-        // text.defaultTextFormat = format;
-        // text.embedFonts = true;
-        // text.text = msg;
-        // text.textColor = 0x000000;
 
         nick = nick.substr(0, 3);
         var textMsg = createText(0xDEDEDE, 1, msg);
@@ -47,17 +40,16 @@ class TextBlock extends Sprite {
         this.addChild(textNick2);
 
         this.graphics.beginFill(color);
-        this.graphics.drawRect(0, 0, 230, 20);
+        this.graphics.drawRect(0, 0, Chat.WIDTH, Chat.HEIGHT);
         this.graphics.endFill();
-        this.y = openfl.Lib.current.stage.stageHeight - 40;
-        // this.width = 500;
+        this.y = openfl.Lib.current.stage.stageHeight - Chat.DY - Chat.HEIGHT;
     }
 
 
     private function createText(color, offset, content) {
-        var font = Assets.getFont("assets/FFFFT___.TTF"); 
+        var font = Assets.getFont(Game.FONT); 
         var format = new TextFormat (font.fontName); 
-        format.size = 10;
+        format.size = 13;
         var text:TextField = new TextField();
         text.defaultTextFormat = format;
         text.embedFonts = true;
@@ -67,8 +59,8 @@ class TextBlock extends Sprite {
         text.x = offset;
         text.selectable = false;
 
-        text.height = 20;
-        text.width = 230;
+        text.height = Chat.HEIGHT;
+        text.width = Chat.WIDTH;
         return text;
     }
 
@@ -82,28 +74,51 @@ class Chat extends Sprite {
     private var text:openfl.text.TextField;
     private var socket:Socket;
     private var messages:Array<TextBlock>;
+    public static var WIDTH:Int = 180;
+    public static var HEIGHT:Int = 48;
+    public static var DY:Int = 50;
 
-    public function new(socket) {
+    public function new(socket, color:Int) {
         super();
-        this.socket = socket;
+        this.socket = socket;  // Has nothing to do here
         this.messages = new Array();
 
-        var font = Assets.getFont("assets/FFFFT___.TTF"); 
+        var font = Assets.getFont(Game.FONT); 
         var format = new TextFormat (font.fontName); 
-        format.size = 10;
+        format.size = 26;
 
         this.text = new openfl.text.TextField();
-        this.text.defaultTextFormat = format;
         this.text.embedFonts = true;
+        this.text.defaultTextFormat = format;
         this.text.x = 0;
-        this.text.height = 20;
-        this.text.width = 230;
-        this.text.y = openfl.Lib.current.stage.stageHeight - this.text.height;
-        this.text.border = true;
-        this.text.borderColor = 0x000000;
+        this.text.y = openfl.Lib.current.stage.stageHeight - DY;
+        this.text.height = Chat.HEIGHT;
+        this.text.width = WIDTH;
+        // this.text.background = true;
+        // this.text.backgroundColor = color;
+
+        // SEPARATION BAR
+        var s = new Shape();
+        s.graphics.clear();
+        s.graphics.beginFill(color);
+        s.graphics.drawRect(text.x, text.y, text.width, text.height);
+        s.graphics.endFill();
+        s.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64, 64);
+        addChild(s);
+
+        // CONTOUR
+        // this.graphics.clear();
+        // this.graphics.beginFill(0xd95b43);
+        // this.graphics.drawRect(text.x, text.y, text.width, text.height);
+        // this.graphics.endFill();
+
+        // DEBUG
+        // this.text.border = true;
+        // this.text.borderColor = 0xf44242;
+
         this.text.wordWrap = true;
         this.text.type = openfl.text.TextFieldType.INPUT;
-        this.text.text = "Hello !";
+        this.text.text = "HELLO !";
         this.text.maxChars = 28;
         this.addChild(this.text);
 
@@ -169,7 +184,7 @@ class Player extends Sprite {
     }
 
     private function createText(color, offset) {
-        var font = Assets.getFont("assets/FFFFT___.TTF"); 
+        var font = Assets.getFont(Game.FONT); 
         var format = new TextFormat (font.fontName); 
         var text:TextField = new TextField();
         text.defaultTextFormat = format;
@@ -200,11 +215,7 @@ class Tile extends Sprite {
         this.graphics.clear();
         this.graphics.beginFill(0xd95b43);
         this.graphics.drawRect(0, 0, Dot.DOT_SIZE, Dot.DOT_SIZE);
-        // this.graphics.drawRect(0, 0, 100, 100);
         this.graphics.endFill();
-
-        // this.x = 50;
-        // this.y = 50;
     }
 }
 
@@ -341,7 +352,8 @@ class Game extends Sprite {
     private static var DOT_COST = 10;
     public static var LAGFREE = true;
     public static var BOARD_MARGIN_X = 260;
-    public static var BOARD_MARGIN_Y = 60;
+    public static var BOARD_MARGIN_Y = 50;
+    public static var FONT = "assets/hello-world.ttf";
 
     private var socket:Socket;
     private var nick:String;
@@ -372,8 +384,8 @@ class Game extends Sprite {
         // this.dots = createDots();
         this.energy = 0;
         this.LFenergy = 0;
-        this.tick = Assets.getSound("assets/sound/Hit_Hurt5.wav");
-        this.vlam = Assets.getSound("assets/sound/Explosion7.wav");
+        this.tick = Assets.getSound("assets/sound/click1.wav");
+        this.vlam = Assets.getSound("assets/sound/click1.wav");
         
         // FPS
         // var fps = new nme.display.FPS();
@@ -392,17 +404,13 @@ class Game extends Sprite {
         this.socket.addEventListener(Event.CLOSE, onClose);
         this.socket.addEventListener(IOErrorEvent.IO_ERROR, onError);
 
-        // Chat
-        this.chat = new Chat(this.socket);
-        this.addChild(this.chat);
-
         // Events listeners
         this.addEventListener(Event.ENTER_FRAME, onEnterFrame);
     }
 
 
     private function popWin(nick:String) {
-        var font = Assets.getFont("assets/FFFFT___.TTF"); 
+        var font = Assets.getFont(Game.FONT); 
         var format = new TextFormat (font.fontName); 
         format.size = 50;
         this.winText = new TextField();
@@ -564,6 +572,10 @@ class Game extends Sprite {
                 }
                 this.players.set(Std.string(_id), player);
 
+                // SPAWN CHAT
+                this.chat = new Chat(this.socket, this.color);
+                this.addChild(this.chat);
+
                 trace("connection from " + _id);
                 trace("connection from " + nick);
                 trace("Is it me ?" + me);
@@ -648,7 +660,7 @@ class Game extends Sprite {
             if(msgType == MESSAGE) {
                 var _id = socket.readUnsignedByte();
                 trace("message from " + _id);
-                var chatMsg = socket.readUTF();
+                var chatMsg = socket.readUTF().toUpperCase ();
 
                 var nick = this.players.get(Std.string(_id)).nick;
                 var color = this.players.get(Std.string(_id)).color;
@@ -711,7 +723,8 @@ class LD23 extends Sprite {
     private function popLogin() {
         var bg = new Bitmap(Assets.getBitmapData("assets/login.png"));
         this.addChild(bg);
-        var font = Assets.getFont("assets/FFFFT___.TTF"); 
+        // var font = Assets.getFont("assets/FFFFT___.TTF");
+        var font = Assets.getFont(Game.FONT);
         var format = new TextFormat (font.fontName); 
         format.size = 10;
         this.login = new TextField();

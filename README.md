@@ -7,5 +7,7 @@ Reviving an old Ludum dare game...
 - [x] Responsive or fixed resolution
 - [ ] Refactor everything
 - [ ] Find back my rPi and host the game there
+- [x] Fixed color generation
+- [ ] Change awful sounds
 
 PS : Be careful, that's some unsexy jam code.
