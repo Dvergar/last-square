@@ -243,8 +243,8 @@ class Connection(WebSocketServerProtocol):
 
                 # map
                 exp_world = self.factory.get_world()
-                self.send(struct.pack("!B" + str(SIZE ** 2) + "B",
-                                                MAP, *exp_world))
+                self.send(struct.pack("!BB" + str(SIZE ** 2) + "B",
+                                                MAP, SIZE, *exp_world))
 
             if msg_type == DOT_COLOR:
                 posx, posy = bs.read_byte(), bs.read_byte()

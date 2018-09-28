@@ -337,7 +337,7 @@ class Game extends Sprite {
     public static var TOWER = 7;
     public static var FULL = 8;
     public static var WIN = 9;
-    private static var SIZE = 30;
+    // private static var SIZE = 0;
     private static var DOT_COST = 10;
     public static var LAGFREE = true;
     public static var BOARD_MARGIN_X = 260;
@@ -369,7 +369,7 @@ class Game extends Sprite {
         this.nick = nick;
         this.id = 0;
         this.players = new Map();
-        this.dots = createDots();
+        // this.dots = createDots();
         this.energy = 0;
         this.LFenergy = 0;
         this.tick = Assets.getSound("assets/sound/Hit_Hurt5.wav");
@@ -449,7 +449,7 @@ class Game extends Sprite {
 
     var a:Array<Sprite> = new Array();
 
-    private function createDots() {
+    private function createDots(SIZE:Int) {
         var xArray:Array<Array<Dot>> = new Array();
         for(x in 0...SIZE) {
             var yArray:Array<Dot> = new Array();
@@ -598,6 +598,9 @@ class Game extends Sprite {
             }
 
             if(msgType == MAP) {
+                var SIZE:Int = socket.readUnsignedByte();
+                this.dots = createDots(SIZE);
+
                 for(x in 0...SIZE) {
                     for(y in 0...SIZE) {
                         var _id = socket.readUnsignedByte();
