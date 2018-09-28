@@ -17,6 +17,7 @@ import openfl.events.SecurityErrorEvent;
 import openfl.net.Socket;
 import openfl.events.ProgressEvent;
 import openfl.external.ExternalInterface;
+import openfl.utils.Endian;
 import Std;
 
 
@@ -187,6 +188,27 @@ class Player extends Sprite {
 }
 
 
+class Tile extends Sprite {
+    public function new(x, y, color)
+    {
+        super();
+        // this.x = Game.BOARD_MARGIN_X + x * Dot.DOT_SIZE;
+        // this.y = Game.BOARD_MARGIN_Y + y * Dot.DOT_SIZE;
+
+
+
+        this.graphics.clear();
+        this.graphics.beginFill(0x542437);
+        // this.graphics.drawRect(0, 0, Dot.DOT_SIZE, Dot.DOT_SIZE);
+        this.graphics.drawRect(0, 0, 100, 100);
+        this.graphics.endFill();
+
+        this.x = 50;
+        this.y = 50;
+    }
+}
+
+
 class Dot extends Sprite {
     public static var DEFAULT_COLOR = 0x542437;
     public static var DEFAULT_BORDER_COLOR = 0xE8E8E8;
@@ -201,8 +223,8 @@ class Dot extends Sprite {
     public function new(x, y) {
         super();
         this.createDot(DEFAULT_COLOR, DEFAULT_BORDER_COLOR, DEFAULT_BORDER_SIZE);
-        this.x = 260 + x * DOT_SIZE;
-        this.y = 100 + y * DOT_SIZE;
+        this.x = Game.BOARD_MARGIN_X + x * DOT_SIZE;
+        this.y = Game.BOARD_MARGIN_Y + y * DOT_SIZE;
         this.id = 0;
         this.color = DEFAULT_COLOR;
         this.dotTimer = new haxe.Timer(1);
@@ -303,39 +325,6 @@ class Bar extends Sprite {
 }
 
 
-class Link extends Sprite {
-    public function new() {
-        super();
-        this.graphics.beginFill(0x575757);
-        this.graphics.drawRect(0, 0, 150, 40);
-        this.graphics.endFill();
-
-        var text1 = createText(0xB8B8B8, 1);
-        this.addChild(text1);
-        var text2 = createText(0x292929, 0);
-        this.addChild(text2);
-        this.buttonMode = true;
-        this.useHandCursor = true;
-        this.mouseChildren = false;
-    }
-
-    private function createText(color, offset) {
-        var font = Assets.getFont("assets/FFFFT___.TTF"); 
-        var format = new TextFormat(font.fontName); 
-        format.size = 14;
-        var text:TextField = new TextField();
-        text.defaultTextFormat = format;
-        text.embedFonts = true;
-        text.text = "LD entry";
-        text.height = 40;
-        text.textColor = color;
-        text.x = 30 + offset;
-        text.y = 5 + offset;
-        text.selectable = false;
-        return text;
-    }
-}
-
 
 class Game extends Sprite {
     public static var MESSAGE = 0;
@@ -348,9 +337,11 @@ class Game extends Sprite {
     public static var TOWER = 7;
     public static var FULL = 8;
     public static var WIN = 9;
-    private static var SIZE = 25;
+    private static var SIZE = 30;
     private static var DOT_COST = 10;
     public static var LAGFREE = true;
+    public static var BOARD_MARGIN_X = 260;
+    public static var BOARD_MARGIN_Y = 100;
 
     private var socket:Socket;
     private var nick:String;
@@ -371,7 +362,6 @@ class Game extends Sprite {
     private var winText:TextField;
     private var tick:openfl.media.Sound;
     private var vlam:openfl.media.Sound;
-    private var linkLD:Link;
     private var color:Int;
 
     public function new(nick:String) {
@@ -384,16 +374,15 @@ class Game extends Sprite {
         this.LFenergy = 0;
         this.tick = Assets.getSound("assets/sound/Hit_Hurt5.wav");
         this.vlam = Assets.getSound("assets/sound/Explosion7.wav");
-        this.linkLD = new Link();
-        this.linkLD.x = 370;
-        this.addChild(this.linkLD);
-        // Fps
+        
+        // FPS
         // var fps = new nme.display.FPS();
         // fps.x = 50;
         // this.addChild(fps);
 
-        // Socket
+        // SOCKET
         this.socket = new Socket();
+        this.socket.endian = BIG_ENDIAN;
         // this.socket.connect("caribou.servebeer.com", 9999);
         // this.socket.connect("carib0u.dyndns.org", 9999);
         this.socket.connect("127.0.0.1", 9999);
@@ -458,6 +447,8 @@ class Game extends Sprite {
         }
     }
 
+    var a:Array<Sprite> = new Array();
+
     private function createDots() {
         var xArray:Array<Array<Dot>> = new Array();
         for(x in 0...SIZE) {
@@ -470,6 +461,14 @@ class Game extends Sprite {
             }
         }
         return xArray;
+
+        // CONTOUR
+        for(x in 0...SIZE) {
+            var tile = new Tile(x - 200, 20, 0xd95b43);
+            trace("ok");
+            this.addChild(tile);
+            a.push(tile);
+        }
     }
 
     private function onMouseOver(event:MouseEvent) {
@@ -539,13 +538,16 @@ class Game extends Sprite {
 
     private function dataHandler(event:ProgressEvent) {
         while(socket.bytesAvailable > 0) {
-            var msgType = socket.readByte();
+            var msgType = socket.readUnsignedByte();
 
             if(msgType == CONNECTION) {
-                var _id = socket.readByte();
+                var _id = socket.readUnsignedByte();
+                trace("bytesavailable " + socket.bytesAvailable);
                 var nick = socket.readUTF();
+                trace("bytesavailable " + socket.bytesAvailable);
                 var color = socket.readInt();
-                var me = socket.readByte();
+                var me = socket.readUnsignedByte();
+                trace("color is " + color);
 
                 var player = new Player(_id, nick, color);
                 this.addChild(player);
@@ -557,10 +559,14 @@ class Game extends Sprite {
                     popEnergyBar(color);
                 }
                 this.players.set(Std.string(_id), player);
+
+                trace("connection from " + _id);
+                trace("connection from " + nick);
+                trace("Is it me ?" + me);
             }
 
             if(msgType == DISCONNECTION) {
-                var _id = socket.readByte();
+                var _id = socket.readUnsignedByte();
                 for(player in this.players) {
                 }
                 var player = this.players.get(Std.string(_id));
@@ -571,9 +577,9 @@ class Game extends Sprite {
             }
 
             if(msgType == TOWER) {
-                var flag = socket.readByte();
-                var posx = socket.readByte();
-                var posy = socket.readByte();
+                var flag = socket.readUnsignedByte();
+                var posx = socket.readUnsignedByte();
+                var posy = socket.readUnsignedByte();
                 if(flag == 1) {
                     this.dots[posx][posy].createTower();
                     this.vlam.play();
@@ -585,8 +591,8 @@ class Game extends Sprite {
             }
 
             if(msgType == UPDATE) {
-                var energy = socket.readByte();
-                this.energyMax = socket.readByte();
+                var energy = socket.readUnsignedByte();
+                this.energyMax = socket.readUnsignedByte();
                 this.energy = energy;
                 this.energyBar.update(energy, this.energyMax);
             }
@@ -594,7 +600,7 @@ class Game extends Sprite {
             if(msgType == MAP) {
                 for(x in 0...SIZE) {
                     for(y in 0...SIZE) {
-                        var _id = socket.readByte();
+                        var _id = socket.readUnsignedByte();
                         if(_id != 0) {
                             var player = this.players.get(Std.string(_id));
                             var color = player.color;
@@ -608,9 +614,9 @@ class Game extends Sprite {
             }
 
             if(msgType == DOT_COLOR) {
-                var _id = socket.readByte();
-                var posx = socket.readByte();
-                var posy = socket.readByte();
+                var _id = socket.readUnsignedByte();
+                var posx = socket.readUnsignedByte();
+                var posy = socket.readUnsignedByte();
                 if(_id != 0) {
                     var player = this.players.get(Std.string(_id));
                     var color:Int = player.color;
@@ -629,7 +635,8 @@ class Game extends Sprite {
             }
 
             if(msgType == MESSAGE) {
-                var _id = socket.readByte();
+                var _id = socket.readUnsignedByte();
+                trace("message from " + _id);
                 var chatMsg = socket.readUTF();
 
                 var nick = this.players.get(Std.string(_id)).nick;
@@ -639,16 +646,16 @@ class Game extends Sprite {
             }
 
             if(msgType == WIN) {
-                var _id = socket.readByte();
+                var _id = socket.readUnsignedByte();
                 var nick = this.players.get(Std.string(_id)).nick;
                 popWin(nick);
             }
 
             if(msgType == RANKING) {
-                var rankNb = socket.readByte();
+                var rankNb = socket.readUnsignedByte();
                 var ranking = new Array();
                 for(i in 0...rankNb) {
-                    var _id = socket.readByte();
+                    var _id = socket.readUnsignedByte();
                     ranking.push(_id);
                     this.rankingRefresh(ranking);
                 }
@@ -662,6 +669,7 @@ class Game extends Sprite {
     }
 
     private function onConnect(event:Event) {
+
         socket.writeByte(CONNECTION);
         socket.writeUTF(this.nick);
         Lib.current.stage.addEventListener(MouseEvent.MOUSE_OVER, onMouseOver);
@@ -684,7 +692,6 @@ class Game extends Sprite {
 class LD23 extends Sprite {
     private var login:TextField;
     private var intro:Bitmap;
-    private var button:Link;
 
     public function new() {
         super();

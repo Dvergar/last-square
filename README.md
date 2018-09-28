@@ -6,5 +6,6 @@ Reviving an old Ludum dare game...
 - [ ] Basic graphic redesign
 - [x] Responsive or fixed resolution
 - [ ] Refactor everything
+- [ ] Find back my rPi and host the game there
 
 PS : Be careful, that's some unsexy jam code.

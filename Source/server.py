@@ -175,7 +175,7 @@ class Tower:
         log("Tower destroy")
         self._registry.remove(self)
         self.owner.towers.remove(self)
-        broadcast(struct.pack("!4b", TOWER, 0, self.x, self.y))
+        broadcast(struct.pack("!4B", TOWER, 0, self.x, self.y))
 
 
 class Connection(WebSocketServerProtocol):
@@ -286,8 +286,9 @@ class Connection(WebSocketServerProtocol):
         print("WebSocket connection open.")
         try:
             self.id = self._ids.pop()
+            print("ID is ", self.id)
         except IndexError:
-            self.transport.write(struct.pack("!b", FULL))
+            self.sendMessage(struct.pack("!B", FULL), True)
             self.disconnect()
 
     def onClose(self, wasClean, code, reason):
@@ -330,6 +331,7 @@ class Connection(WebSocketServerProtocol):
 
     def send(self, data):
         self.tosend += data
+        print("send ", len(data))
 
     def update(self):
         dt = time.time() - self.last_frame_time
@@ -352,6 +354,7 @@ class Connection(WebSocketServerProtocol):
         self.energy_time = time.time()
 
         if len(self.tosend) > 0:
+            print("send", self.tosend)
             # self.transport.write(self.tosend)
             self.sendMessage(self.tosend, True)
             self.tosend = b''
