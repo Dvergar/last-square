@@ -97,7 +97,7 @@ class Chat extends Sprite {
         // this.text.background = true;
         // this.text.backgroundColor = color;
 
-        // SEPARATION BAR
+        // INPUT BOX COLOR
         var s = new Shape();
         s.graphics.clear();
         s.graphics.beginFill(color);
@@ -140,12 +140,17 @@ class Chat extends Sprite {
         var block = new TextBlock(openfl.Lib.current.stage.stageHeight, msg, color, nick);
         this.addChild(block);
 
+        var i = 0;
+        var nbMessages = this.messages.length;
         for(textBlock in this.messages) {
+            textBlock.alpha = 1 - (nbMessages - i)*0.1;
             textBlock.moveUp();
             if(textBlock.y < 0) {
                 this.removeChild(textBlock);
                 this.messages.remove(textBlock);
             }
+
+            i++;
         }
         this.messages.push(block);
     }
@@ -158,42 +163,42 @@ class Player extends Sprite {
     public var color:Int;
     private var rankText:TextField;
     private var rankText2:TextField;
+    public static var HEIGHT:Int = 30;
 
     public function new(id, nick, color) {
         super();
         this.id = id;
-        this.nick = nick;
+        this.nick = nick.toUpperCase();
         this.color = color;
         this.y = -100;
-
         // background
         this.graphics.clear();
-        // this.graphics.lineStyle(borderSize, borderColor);
         this.graphics.beginFill(this.color);
-        this.graphics.drawRect(openfl.Lib.current.stage.stageWidth - 150,
-                                                        0, 150, 20);
+        this.graphics.drawRect(0, 0, Chat.WIDTH, HEIGHT);
         this.graphics.endFill();  
 
-        this.rankText = createText(0xDEDEDE, 0);
+        this.rankText = createText();
         this.addChild(rankText);
-        this.rankText2 = createText(0x000000, 1);
-        this.addChild(rankText2);
+        // this.rankText2 = createText(0x000000, 1);
+        // this.addChild(rankText2);
 
-        // this.rankText.y = 400;
         this.addChild(this.rankText);
     }
 
-    private function createText(color, offset) {
+    private function createText() {
         var font = Assets.getFont(Game.FONT); 
-        var format = new TextFormat (font.fontName); 
+        var format = new TextFormat (font.fontName);
+        format.size = 16;
         var text:TextField = new TextField();
         text.defaultTextFormat = format;
         text.embedFonts = true;
         text.text = this.nick;
         text.textColor = color;
-        text.x = openfl.Lib.current.stage.stageWidth - 120 - offset;
-        text.y = offset;
+        text.x = 10;
+        text.y = 6;
+        // text.alpha = 0.5;
         text.selectable = false;
+        text.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
         return text;
     }
 
@@ -351,7 +356,7 @@ class Game extends Sprite {
     // private static var SIZE = 0;
     private static var DOT_COST = 10;
     public static var LAGFREE = true;
-    public static var BOARD_MARGIN_X = 260;
+    public static var BOARD_MARGIN_X = 240;
     public static var BOARD_MARGIN_Y = 50;
     public static var FONT = "assets/hello-world.ttf";
 
@@ -450,7 +455,7 @@ class Game extends Sprite {
         var count = 0;
         for(_id in ranking) {
             var player:Player = this.players.get(Std.string(_id));
-            player.moveText(count * 20);
+            player.moveText(count * Player.HEIGHT);
             count += 1;
         }
     }

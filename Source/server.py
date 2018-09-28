@@ -249,9 +249,8 @@ class Connection(WebSocketServerProtocol):
                                                     self.enc(self.nick), self.color, 1))
 
                 # map
-                exp_world = self.factory.get_world()
-                self.send(struct.pack("!BB" + str(SIZE ** 2) + "B",
-                                                MAP, SIZE, *exp_world))
+                exp_world = self.factory.get_world()                
+                self.send(get_map_struct(exp_world))
 
             if msg_type == DOT_COLOR:
                 posx, posy = int(bs.read_byte()), int(bs.read_byte())
@@ -372,6 +371,10 @@ class Connection(WebSocketServerProtocol):
         return struct.pack("!3B", UPDATE, int(self.energy), int(self.energy_max))
 
 
+def get_map_struct(world):
+    return struct.pack("!BB" + str(SIZE ** 2) + "B", MAP, SIZE, *world)
+
+
 class GameServer(WebSocketServerFactory):
     # protocol = Connection
     game_running = False
@@ -408,8 +411,7 @@ class GameServer(WebSocketServerFactory):
 
         self.gen_world()
         exp_world = self.get_world()
-        broadcast(struct.pack("!B" + str(SIZE ** 2) + "B",
-                                        MAP, *exp_world))
+        broadcast(get_map_struct(exp_world))
 
     def active_players(self):
         count = 0
@@ -423,7 +425,8 @@ class GameServer(WebSocketServerFactory):
     def generate_ranking(self):
         # Also check end of the game
         for player in Connection._registry.values():
-            if player.dots > SIZE ** 2 / (0.8 * self.active_players()):
+            # if player.dots > SIZE ** 2 / (0.8 * self.active_players()):
+            if player.dots > SIZE ** 2 / 0.8:
                 log("Game won by " + player.nick)
                 broadcast(struct.pack("!BB", WIN, player.id))
                 self.restart()
