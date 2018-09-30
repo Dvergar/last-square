@@ -29,8 +29,9 @@ TOWER = 7
 FULL = 8
 WIN = 9
 
-SIZE = 30
-DOT_COST = 10
+SIZE = 27  # SERVER-ONLY
+DOT_COST = 10  # SERVER+CLIENT
+DOT_REGEN = 30  # SERVER+CLIENT
 
 
 def log(msg):
@@ -253,6 +254,7 @@ class Connection(WebSocketServerProtocol):
                 self.send(get_map_struct(exp_world))
 
             if msg_type == DOT_COLOR:
+                print("dotcolor")
                 posx, posy = int(bs.read_byte()), int(bs.read_byte())
                 if self.energy > DOT_COST:
                     self.push_dot(posx, posy)
@@ -329,7 +331,7 @@ class Connection(WebSocketServerProtocol):
                 old_owner = Connection._registry[old_owner_id]
                 old_owner.dots -= 1
             self.dots += 1
-            self.energy -= 10
+            self.energy -= DOT_COST
             world[(posx, posy)] = self.id
             broadcast(struct.pack("!4B", DOT_COLOR, self.id,
                                                 posx, posy))
@@ -347,7 +349,7 @@ class Connection(WebSocketServerProtocol):
         self.energy_max = 20 + self.dots * 0.2
         if self.energy_max > 100:
             self.energy_max = 100
-        self.energy += 30 * dt
+        self.energy += DOT_REGEN * dt
         if self.energy > self.energy_max:
             self.energy = self.energy_max
         elif self.energy < 0:

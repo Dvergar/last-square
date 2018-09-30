@@ -1,3 +1,4 @@
+
 package;
 
 import openfl.display.Bitmap;
@@ -20,6 +21,8 @@ import openfl.external.ExternalInterface;
 import openfl.utils.Endian;
 import Std;
 
+import motion.Actuate;
+
 
 class TextBlock extends Sprite {
     private var text:openfl.text.TextField;
@@ -27,17 +30,20 @@ class TextBlock extends Sprite {
     public function new(y, msg:String, color:Int, nick:String) {
         super();
 
-        nick = nick.substr(0, 3);
-        var textMsg = createText(0xDEDEDE, 1, msg);
+        nick = nick.substr(0, 1);
+        var textMsg = createText(color, 1, msg);
         textMsg.x = 35;
+        textMsg.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
         this.addChild(textMsg);
-        var textMsg2 = createText(0x000000, 0, msg);
-        textMsg2.x = 35;
-        this.addChild(textMsg2);
-        var textNick = createText(0x000000, 1, nick);
+        // var textMsg2 = createText(0x000000, 0, msg);
+        // textMsg2.x = 35;
+        // this.addChild(textMsg2);
+        var textNick = createText(color, 1, nick);
+        textNick.x = 10;
+        textNick.transform.colorTransform = new openfl.geom.ColorTransform(0.7, 0.7, 0.7);
         this.addChild(textNick);
-        var textNick2 = createText(0xDEDEDE, 0, nick);
-        this.addChild(textNick2);
+        // var textNick2 = createText(0xDEDEDE, 0, nick);
+        // this.addChild(textNick2);
 
         this.graphics.beginFill(color);
         this.graphics.drawRect(0, 0, Chat.WIDTH, Chat.HEIGHT);
@@ -45,18 +51,17 @@ class TextBlock extends Sprite {
         this.y = openfl.Lib.current.stage.stageHeight - Chat.DY - Chat.HEIGHT;
     }
 
-
     private function createText(color, offset, content) {
         var font = Assets.getFont(Game.FONT); 
         var format = new TextFormat (font.fontName); 
-        format.size = 13;
+        format.size = 26;
         var text:TextField = new TextField();
         text.defaultTextFormat = format;
         text.embedFonts = true;
         text.text = content;
         text.textColor = color;
-        text.y = offset;
-        text.x = offset;
+        // text.y = offset;
+        // text.x = offset;
         text.selectable = false;
 
         text.height = Chat.HEIGHT;
@@ -209,13 +214,11 @@ class Player extends Sprite {
 
 
 class Tile extends Sprite {
-    public function new(x, y, color)
+    public function new(tileX, tileY, color, dx:Int = 0, dy:Int = 0)
     {
         super();
-        this.x = Game.BOARD_MARGIN_X + x * Dot.DOT_SIZE;
-        this.y = Game.BOARD_MARGIN_Y + y * Dot.DOT_SIZE;
-
-
+        this.x = tileX * Dot.DOT_SIZE + dx;
+        this.y = tileY * Dot.DOT_SIZE + dy;
 
         this.graphics.clear();
         this.graphics.beginFill(0xd95b43);
@@ -251,11 +254,14 @@ class Dot extends Sprite {
         // this.graphics.lineStyle(borderSize, borderColor);
         this.graphics.beginFill(color);
         this.graphics.drawRect(0, 0, DOT_SIZE, DOT_SIZE);
-        this.graphics.endFill();  
+        this.graphics.endFill();
+        this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 14, 14 ,14);
+        Actuate.tween(this.transform.colorTransform, 4, {redOffset:0, greenOffset:0, blueOffset:0});
     }
 
     public function createTower() {
         createDot(this.color, 0x1C1C1C, 4);
+        this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 32, 32 ,32);
     }
 
     public function destroyTower() {
@@ -292,51 +298,76 @@ class Dot extends Sprite {
 class Bar extends Sprite {
     private var content:Sprite;
     private var line:Sprite;
-    private var daWidth:Int;
+    private var realWidth:Int;
 
-    public function new(color:Int, width:Int, Height:Int) {
+    public function new(color:Int, board_size:Int) {
         super();
-        var bsize:Int = 2;
-        this.daWidth = width;
+        var WIDTH = board_size * Dot.DOT_SIZE;
+        var HEIGHT = 2 * 16;
+        var pad = 10;
+        this.realWidth = WIDTH - 2 * pad;
+        var yOffset = 2*Dot.DOT_SIZE;
+        this.x = Game.BOARD_MARGIN_X;
+        this.y = Game.BOARD_MARGIN_Y + board_size * Dot.DOT_SIZE + yOffset;
 
-        // Border
-        this.graphics.lineStyle(bsize, 0xE8E8E8);
-        this.graphics.beginFill(0xD1D1D1);
-        this.graphics.drawRect(0, 0, width, Height);
-        this.graphics.endFill();
+        // // Border
+        // this.graphics.lineStyle(bsize, 0xE8E8E8);
+        // this.graphics.beginFill(0xD1D1D1);
+        // this.graphics.drawRect(0, 0, width, Height);
+        // this.graphics.endFill();
+
+        // TILES
+        for(x in 0...board_size) {
+            this.addChild(new Tile(x, 0, 0xd95b43));
+            this.addChild(new Tile(x, 1, 0xd95b43));
+        }
 
         // Content
         this.content = new Sprite();
         this.content.graphics.beginFill(color);
-        this.content.graphics.drawRect(0, 0,
-                    width - bsize, Height - bsize);
+        this.content.graphics.drawRect(0, pad / 2,
+                    realWidth, HEIGHT - pad);
         this.content.graphics.endFill();
-        this.content.x = bsize / 2;
-        this.content.y = bsize / 2;
+        // Positioning from container because scaling is buggy
+        this.content.x = pad / 2;
         this.addChild(this.content);
 
         // Line
         this.line = new Sprite();
         this.line.graphics.beginFill(0xCC2525);
-        this.line.graphics.drawRect(0, bsize,
-                        3, Height - bsize);
+        this.line.graphics.drawRect(pad / 2, pad / 2,
+                        3, HEIGHT - pad);
         this.line.graphics.endFill();
         this.addChild(this.line);
 
         // Tower lines
+
+        var xTower = 25 * realWidth / 100;
+        var yTower = pad / 2;
         for(i in 1...4) {
             var tline = new Sprite();
-            tline.graphics.beginFill(0x3D3D3D);
-            tline.graphics.drawRect(i * 25 * this.daWidth / 100, bsize,
-                            3, Height - bsize);
+            tline.graphics.beginFill(0xffe17561);
+            tline.graphics.drawRect(i * xTower, yTower,
+                            3, HEIGHT - pad);
             tline.graphics.endFill();
             this.addChild(tline);
         }
+
+        // PLACE SKILLS
+        var cross = new Bitmap(Assets.getBitmapData("assets/cross.png"));
+        cross.x = xTower - cross.width / 2;
+        cross.y = yTower + 38;
+        this.addChild(cross);
+
+        var tower = new Bitmap(Assets.getBitmapData("assets/tower.png"));
+        tower.x = 2 * xTower - tower.width / 2;
+        tower.y = yTower + 38;
+        this.addChild(tower);
     }
 
     public function update(energy:Int, energyMax:Int) {
         this.content.scaleX = energy / 100;
-        this.line.x = this.daWidth / 100 * energyMax;
+        this.line.x = this.realWidth / 100 * energyMax;
     }
 }
 
@@ -355,8 +386,9 @@ class Game extends Sprite {
     public static var WIN = 9;
     // private static var SIZE = 0;
     private static var DOT_COST = 10;
+    private static var DOT_REGEN = 30;
     public static var LAGFREE = true;
-    public static var BOARD_MARGIN_X = 240;
+    public static var BOARD_MARGIN_X = 250;
     public static var BOARD_MARGIN_Y = 50;
     public static var FONT = "assets/hello-world.ttf";
 
@@ -436,19 +468,21 @@ class Game extends Sprite {
         this.removeChild(this.winText);
     }
 
-    private function popEnergyBar(color:Int) {
-        this.energyBar = new Bar(color, 358, 40);
-        this.energyBar.x = 260;
-        this.energyBar.y = openfl.Lib.current.stage.stageHeight - this.energyBar.height;
-        this.addChild(this.energyBar);
+    private function popEnergyBar(color:Int, boardSize:Int) {
+        this.energyBarLF = new Bar(color, boardSize);
+        // this.energyBar.x = 260;
+        // this.energyBar.y = openfl.Lib.current.stage.stageHeight - this.energyBar.height;
+        this.addChild(this.energyBarLF);
 
-        if(Game.LAGFREE) {
-            // this.energyBarLF = new Bar(0x333132, 358, 20);  // Debug
-            this.energyBarLF = new Bar(color, 358, 40);
-            this.energyBarLF.x = 260;
-            this.energyBarLF.y = openfl.Lib.current.stage.stageHeight - this.energyBarLF.height;
-            this.addChild(this.energyBarLF);
-        }
+        // if(Game.LAGFREE) {
+        //     // this.energyBarLF = new Bar(0x333132, 358, 20);  // Debug
+        //     this.energyBarLF = new Bar(color, 358, 40);
+        //     this.energyBarLF.x = 260;
+        //     this.energyBarLF.y = openfl.Lib.current.stage.stageHeight - this.energyBarLF.height;
+        //     this.addChild(this.energyBarLF);
+        // }
+
+
     }
 
     private function rankingRefresh(ranking:Array<Int>) {
@@ -476,46 +510,48 @@ class Game extends Sprite {
 
         // CONTOUR
         for(x in 0...SIZE) {
-            this.addChild(new Tile(x, -1, 0xd95b43));
-            this.addChild(new Tile(x, SIZE, 0xd95b43));
+            this.addChild(new Tile(x, -1, 0xd95b43, Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y));
+            this.addChild(new Tile(x, SIZE, 0xd95b43, Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y));
         }
 
         for(y in 0...SIZE) {
-            this.addChild(new Tile(-1, y, 0xd95b43));
-            this.addChild(new Tile(SIZE, y, 0xd95b43));
+            this.addChild(new Tile(-1, y, 0xd95b43, Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y));
+            this.addChild(new Tile(SIZE, y, 0xd95b43, Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y));
         }
 
         return xArray;
     }
 
     private function onMouseOver(event:MouseEvent) {
+        trace("mousover");
         for(posx in 0...this.dots.length) {
             for(posy in 0...this.dots[posx].length) {
                 var dot = this.dots[posx][posy];
                 if(event.target == dot){
 
-                    if(Game.LAGFREE) {
+                    // if(Game.LAGFREE) {
                         if(dot.id != this.id && this.LFenergy > DOT_COST) {
-                            this.LFenergy -= 10;
+                            this.LFenergy -= DOT_COST;
                             dot.focusDot(this.color);
                             socket.writeByte(DOT_COLOR);
                             socket.writeByte(posx);
                             socket.writeByte(posy);
                         }
-                    }
-                    else {
-                        if(dot.id != this.id && this.energy > DOT_COST) {
-                            socket.writeByte(DOT_COLOR);
-                            socket.writeByte(posx);
-                            socket.writeByte(posy);
-                        }
-                    }
+                    // }
+                    // else {
+                        // if(dot.id != this.id && this.energy > DOT_COST) {
+                    //         socket.writeByte(DOT_COLOR);
+                    //         socket.writeByte(posx);
+                    //         socket.writeByte(posy);
+                    //     }
+                    // }
                 }
             }
         }
     }
 
     private function onMouseDown(event:MouseEvent) {
+        trace(event);
         for(posx in 0...this.dots.length) {
             for(posy in 0...this.dots[posx].length) {
                 var dot = this.dots[posx][posy];
@@ -534,9 +570,9 @@ class Game extends Sprite {
         var elapsedTime:Float = Lib.getTimer() - this.startTime;
 
         if (elapsedTime > 1000 / 10) {
-            if(Game.LAGFREE) {
+            // if(Game.LAGFREE) {
                 if(this.id != 0) {
-                    this.LFenergy += 30 * elapsedTime / 1000;
+                    this.LFenergy += DOT_REGEN * elapsedTime / 1000;
                     if(this.LFenergy > this.energyMax) {
                         this.LFenergy = this.energyMax;
                     }
@@ -546,7 +582,7 @@ class Game extends Sprite {
                     }
                     this.energyBarLF.update(Std.int(this.LFenergy), Std.int(this.energyMax));
                 }
-            }
+            // }
 
             socket.flush();
             this.startTime = Lib.getTimer();
@@ -573,7 +609,6 @@ class Game extends Sprite {
                     this.id = _id;
                     this.myPlayer = player;
                     this.color = color;
-                    popEnergyBar(color);
                 }
                 this.players.set(Std.string(_id), player);
 
@@ -615,7 +650,7 @@ class Game extends Sprite {
                 var energy = socket.readUnsignedByte();
                 this.energyMax = socket.readUnsignedByte();
                 this.energy = energy;
-                this.energyBar.update(energy, this.energyMax);
+                this.energyBarLF.update(energy, this.energyMax);
             }
 
             if(msgType == MAP) {
@@ -639,9 +674,16 @@ class Game extends Sprite {
                 // ATTACH EVENTS
                 Lib.current.stage.addEventListener(MouseEvent.MOUSE_OVER, onMouseOver);
                 Lib.current.stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
+
+                // AWFUL BUT LET'S JUST PROTOTYPE FOR NOW
+                if(this.id != 0) // aka me aka first connection, differentiate from new map from win
+                {
+                    popEnergyBar(color, SIZE);
+                }
             }
 
             if(msgType == DOT_COLOR) {
+                trace("dot_color");
                 var _id = socket.readUnsignedByte();
                 var posx = socket.readUnsignedByte();
                 var posy = socket.readUnsignedByte();
@@ -715,6 +757,7 @@ class Game extends Sprite {
     }
 }
 
+
 class LD23 extends Sprite {
     private var login:TextField;
     private var intro:Bitmap;
@@ -744,6 +787,9 @@ class LD23 extends Sprite {
         this.login.y = openfl.Lib.current.stage.stageWidth / 2 - 100;
         this.addChild(this.login);
 
+        // PREVENT RIGHT CLICK
+        openfl.Lib.current.stage.showDefaultContextMenu = false;
+
         this.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
         this.addEventListener(MouseEvent.CLICK, onMouseClick);
     }
@@ -765,8 +811,6 @@ class LD23 extends Sprite {
                 popGame();
         }
     }
-
-
 
     public static function main() {
         Lib.current.addChild(new LD23());
