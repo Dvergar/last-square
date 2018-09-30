@@ -259,6 +259,13 @@ class Dot extends Sprite {
         Actuate.tween(this.transform.colorTransform, 4, {redOffset:0, greenOffset:0, blueOffset:0});
     }
 
+    public function createPillar() {
+        this.graphics.beginFill(0xf44542);
+        this.graphics.drawCircle(8, 8, 8);
+        this.graphics.endFill();
+        // this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64 ,64);
+    }
+
     public function createTower() {
         createDot(this.color, 0x1C1C1C, 4);
         this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 32, 32 ,32);
@@ -384,6 +391,7 @@ class Game extends Sprite {
     public static var TOWER = 7;
     public static var FULL = 8;
     public static var WIN = 9;
+    public static var PILLAR = 10;
     // private static var SIZE = 0;
     private static var DOT_COST = 10;
     private static var DOT_REGEN = 30;
@@ -551,13 +559,29 @@ class Game extends Sprite {
     }
 
     private function onMouseDown(event:MouseEvent) {
-        trace(event);
+        // trace(event);
         for(posx in 0...this.dots.length) {
             for(posy in 0...this.dots[posx].length) {
                 var dot = this.dots[posx][posy];
                 if(event.target == dot){  // PLEASE...
                     if(dot.id == this.id) {
                         socket.writeByte(TOWER);
+                        socket.writeByte(posx);
+                        socket.writeByte(posy);
+                    }
+                }
+            }
+        }
+    }
+
+    private function onRightMouseDown(event:MouseEvent) {
+        trace(event);
+        for(posx in 0...this.dots.length) {
+            for(posy in 0...this.dots[posx].length) {
+                var dot = this.dots[posx][posy];
+                if(event.target == dot){  // PLEASE...
+                    if(dot.id == this.id) {
+                        socket.writeByte(PILLAR);
                         socket.writeByte(posx);
                         socket.writeByte(posy);
                     }
@@ -643,7 +667,19 @@ class Game extends Sprite {
                 else {
                     this.dots[posx][posy].destroyTower();
                 }
+            }
 
+            if(msgType == PILLAR) {
+                var flag = socket.readUnsignedByte();
+                var posx = socket.readUnsignedByte();
+                var posy = socket.readUnsignedByte();
+                if(flag == 1) {
+                    this.dots[posx][posy].createPillar();
+                    // this.vlam.play();
+                }
+                // else {
+                //     this.dots[posx][posy].destroyTower();
+                // }
             }
 
             if(msgType == UPDATE) {
@@ -674,6 +710,7 @@ class Game extends Sprite {
                 // ATTACH EVENTS
                 Lib.current.stage.addEventListener(MouseEvent.MOUSE_OVER, onMouseOver);
                 Lib.current.stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
+                Lib.current.stage.addEventListener(MouseEvent.RIGHT_MOUSE_DOWN, onRightMouseDown);
 
                 // AWFUL BUT LET'S JUST PROTOTYPE FOR NOW
                 if(this.id != 0) // aka me aka first connection, differentiate from new map from win

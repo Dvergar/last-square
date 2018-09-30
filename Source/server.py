@@ -28,6 +28,7 @@ UPDATE = 6
 TOWER = 7
 FULL = 8
 WIN = 9
+PILLAR = 10
 
 SIZE = 27  # SERVER-ONLY
 DOT_COST = 10  # SERVER+CLIENT
@@ -121,6 +122,43 @@ def eat_dot(_id:int):
 
 World = Dict[Tuple[int, int], int]
 
+
+class Pillar:
+    _registry:List[Pillar] = []
+    def __init__(self, x:int, y:int, world:World, owner:Connection) -> None:
+        self._registry.append(self)
+        self.owner = owner
+        self.world:World = world
+        self.x = x
+        self.y = y
+        self.checklist = [
+                        (-1, 0),
+                        (-1, 1),
+                        (0, 1),
+                        (1, 1),
+                        (0, 0),
+                        (1, 0),
+                        (1, -1),
+                        (0, -1),
+                        (-1, -1)
+                        ]
+
+    def attack(self):
+        range_max = 8
+        range_now = random.randint(1, range_max)
+        kx = random.choice([-1,1])
+        ky = random.choice([-1,1])
+        try:
+            for (dx, dy) in self.checklist:
+                x = self.x + range_now * kx + dx
+                y = self.y + range_now * ky + dy
+                if self.world[x, y] != self.owner.id:
+                    broadcast(struct.pack("!4B", DOT_COLOR, self.owner.id,
+                                                        x, y))
+        except KeyError:
+            pass
+
+
 class Tower:
     _registry:List[Tower] = []
 
@@ -195,6 +233,7 @@ class Connection(WebSocketServerProtocol):
 
         self.energy_max = 20 + self.dots * 0.2
         self.towers:List[Tower] = []
+        self.pillars:List[Pillar] = []
         self.last_frame_time = time.time()
         self.temp_dots:List[Dot] = []
         self.REALLY_connected = 0
@@ -279,6 +318,23 @@ class Connection(WebSocketServerProtocol):
                             self.towers.append(Tower(posx, posy, world, self))
                     except KeyError:
                         pass
+
+            if msg_type == PILLAR:
+                log("Pillar create")
+                posx, posy = int(bs.read_byte()), int(bs.read_byte())
+                print(posx, posy)
+                # if self.energy_max // 25 > len(self.towers):
+                try:
+                    buildable = True
+                    world = self.factory.world
+                    if world[posx, posy] != self.id:
+                            buildable = False
+                    if buildable:
+                        print("buildable")
+                        broadcast(struct.pack("!4B", PILLAR, 1, posx, posy))
+                        self.pillars.append(Pillar(posx, posy, world, self))
+                except KeyError:
+                    pass
 
             if msg_type == MESSAGE:
                 chatmsg = bs.read_UTF()
@@ -387,6 +443,7 @@ class GameServer(WebSocketServerFactory):
 
         self.gen_world()
         self.tower_time = time.time()
+        self.pillar_time = time.time()
 
         self.l = task.LoopingCall(self.game_loop)
         self.l.start(1 / 10.)
@@ -454,6 +511,11 @@ class GameServer(WebSocketServerFactory):
             for tower in Tower._registry:
                 tower.propagate()
             self.tower_time = time.time()
+
+        if time.time() - self.pillar_time > 1:
+            for pillar in Pillar._registry:
+                pillar.attack()
+            self.pillar_time = time.time()
 
 
 if __name__ == '__main__':
