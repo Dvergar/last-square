@@ -1,6 +1,7 @@
 from __future__ import annotations
 import struct
 import random
+import math
 import time
 import sys
 from typing import *
@@ -16,23 +17,11 @@ import randomcolor
 # factory = WebSocketServerFactory()
 # factory.protocol = MyServerProtocol
 
+import serverhelpers
+from common import *
+
+
 log.startLogging(sys.stdout)
-
-MESSAGE = 0
-CONNECTION = 1
-DOT_COLOR = 2
-RANKING = 3
-MAP = 4
-DISCONNECTION = 5
-UPDATE = 6
-TOWER = 7
-FULL = 8
-WIN = 9
-PILLAR = 10
-
-SIZE = 27  # SERVER-ONLY
-DOT_COST = 10  # SERVER+CLIENT
-DOT_REGEN = 30  # SERVER+CLIENT
 
 
 def log(msg):
@@ -144,16 +133,18 @@ class Pillar:
                         ]
 
     def attack(self):
-        range_max = 8
-        range_now = random.randint(1, range_max)
-        kx = random.choice([-1,1])
-        ky = random.choice([-1,1])
+        angle = random.random() * 2 * math.pi
+        distance_max = 8
+        distance = random.randint(1, distance_max)
+        x_off = int(math.cos(angle) * distance)
+        y_off = int(math.sin(angle) * distance)
+        print(x_off, y_off)
         try:
             for (dx, dy) in self.checklist:
-                x = self.x + range_now * kx + dx
-                y = self.y + range_now * ky + dy
+                x = self.x + x_off + dx
+                y = self.y + y_off + dy
                 if self.world[x, y] != self.owner.id:
-                    broadcast(struct.pack("!4B", DOT_COLOR, self.owner.id,
+                    broadcast(struct.pack("!4B", CST.DOT_COLOR, self.owner.id,
                                                         x, y))
         except KeyError:
             pass
@@ -180,7 +171,7 @@ class Tower:
             eat_dot(self.world[self.left])
             self.world[self.left] = self.owner.id
             self.owner.dots += 1
-            broadcast(struct.pack("!4B", DOT_COLOR, self.owner.id,
+            broadcast(struct.pack("!4B", CST.DOT_COLOR, self.owner.id,
                                                 *self.left))
         else:
             propagating -= 1
@@ -189,7 +180,7 @@ class Tower:
             eat_dot(self.world[self.right])
             self.world[self.right] = self.owner.id
             self.owner.dots += 1
-            broadcast(struct.pack("!4B", DOT_COLOR, self.owner.id,
+            broadcast(struct.pack("!4B", CST.DOT_COLOR, self.owner.id,
                                                 *self.right))
         else:
             propagating -= 1
@@ -198,7 +189,7 @@ class Tower:
             eat_dot(self.world[self.up])
             self.world[self.up] = self.owner.id
             self.owner.dots += 1
-            broadcast(struct.pack("!4B", DOT_COLOR, self.owner.id,
+            broadcast(struct.pack("!4B", CST.DOT_COLOR, self.owner.id,
                                                 *self.up))
         else:
             propagating -= 1
@@ -207,7 +198,7 @@ class Tower:
             eat_dot(self.world[self.down])
             self.world[self.down] = self.owner.id
             self.owner.dots += 1
-            broadcast(struct.pack("!4B", DOT_COLOR, self.owner.id,
+            broadcast(struct.pack("!4B", CST.DOT_COLOR, self.owner.id,
                                                 *self.down))
         else:
             propagating -= 1
@@ -219,7 +210,7 @@ class Tower:
         log("Tower destroy")
         self._registry.remove(self)
         self.owner.towers.remove(self)
-        broadcast(struct.pack("!4B", TOWER, 0, self.x, self.y))
+        broadcast(struct.pack("!4B", CST.TOWER, 0, self.x, self.y))
 
 
 class Connection(WebSocketServerProtocol):
@@ -262,7 +253,7 @@ class Connection(WebSocketServerProtocol):
         while bs.working():
             msg_type = bs.read_byte()
 
-            if msg_type == CONNECTION:
+            if msg_type == CST.CONNECTION:
                 # Here to prevent client receiving other clients datas before init
                 self._registry[self.id] = self
                 self.tosend = b''
@@ -284,7 +275,7 @@ class Connection(WebSocketServerProtocol):
                             connection.send(self.get_datas_connection())
                         else:
                             # Send me to me
-                            self.send(struct.pack("!BBH8siB", CONNECTION,
+                            self.send(struct.pack("!BBH8siB", CST.CONNECTION,
                                                     self.id, 8,
                                                     self.enc(self.nick), self.color, 1))
 
@@ -292,15 +283,15 @@ class Connection(WebSocketServerProtocol):
                 exp_world = self.factory.get_world()                
                 self.send(get_map_struct(exp_world))
 
-            if msg_type == DOT_COLOR:
+            if msg_type == CST.DOT_COLOR:
                 print("dotcolor")
                 posx, posy = int(bs.read_byte()), int(bs.read_byte())
-                if self.energy > DOT_COST:
+                if self.energy > CST.DOT_COST:
                     self.push_dot(posx, posy)
                 else:
                     self.temp_dots.append((posx, posy))
 
-            if msg_type == TOWER:
+            if msg_type == CST.TOWER:
                 log("Tower create")
                 posx, posy = int(bs.read_byte()), int(bs.read_byte())
                 print(posx, posy)
@@ -314,12 +305,12 @@ class Connection(WebSocketServerProtocol):
                                 buildable = False
                         if buildable:
                             print("buildable")
-                            broadcast(struct.pack("!4B", TOWER, 1, posx, posy))
+                            broadcast(struct.pack("!4B", CST.TOWER, 1, posx, posy))
                             self.towers.append(Tower(posx, posy, world, self))
                     except KeyError:
                         pass
 
-            if msg_type == PILLAR:
+            if msg_type == CST.PILLAR:
                 log("Pillar create")
                 posx, posy = int(bs.read_byte()), int(bs.read_byte())
                 print(posx, posy)
@@ -331,16 +322,16 @@ class Connection(WebSocketServerProtocol):
                             buildable = False
                     if buildable:
                         print("buildable")
-                        broadcast(struct.pack("!4B", PILLAR, 1, posx, posy))
+                        broadcast(struct.pack("!4B", CST.PILLAR, 1, posx, posy))
                         self.pillars.append(Pillar(posx, posy, world, self))
                 except KeyError:
                     pass
 
-            if msg_type == MESSAGE:
+            if msg_type == CST.MESSAGE:
                 chatmsg = bs.read_UTF()
                 log(self.nick + " > " + self.dec(chatmsg))
                 chatstruct = "!BBH" + str(len(chatmsg)) + "s"
-                broadcast(struct.pack(chatstruct, MESSAGE, self.id,
+                broadcast(struct.pack(chatstruct, CST.MESSAGE, self.id,
                                             len(chatmsg), chatmsg))
 
     def onConnect(self, request):
@@ -352,7 +343,7 @@ class Connection(WebSocketServerProtocol):
             self.id = self._ids.pop()
             print("ID is ", self.id)
         except IndexError:
-            self.sendMessage(struct.pack("!B", FULL), True)
+            self.sendMessage(struct.pack("!B", CST.FULL), True)
             self.disconnect()
 
     def onClose(self, wasClean, code, reason):
@@ -361,12 +352,12 @@ class Connection(WebSocketServerProtocol):
             tower.destroy()
         if self in self._registry.values():
             log("...from " + self.nick)
-            broadcast(struct.pack("!BB", DISCONNECTION, self.id))
+            broadcast(struct.pack("!BB", DISCST.CONNECTION, self.id))
         self.disconnect()  # Here and not above !
         for (posx, posy), _id in self.factory.world.items():
             if _id == self.id:
                 self.factory.world[posx, posy] = 0
-                broadcast(struct.pack("!4B", DOT_COLOR, 0, posx, posy))
+                broadcast(struct.pack("!4B", CST.DOT_COLOR, 0, posx, posy))
 
     def reset(self):
         for tower in self.towers:
@@ -387,9 +378,9 @@ class Connection(WebSocketServerProtocol):
                 old_owner = Connection._registry[old_owner_id]
                 old_owner.dots -= 1
             self.dots += 1
-            self.energy -= DOT_COST
+            self.energy -= CST.DOT_COST
             world[(posx, posy)] = self.id
-            broadcast(struct.pack("!4B", DOT_COLOR, self.id,
+            broadcast(struct.pack("!4B", CST.DOT_COLOR, self.id,
                                                 posx, posy))
 
     def send(self, data:bytes):
@@ -405,7 +396,7 @@ class Connection(WebSocketServerProtocol):
         self.energy_max = 20 + self.dots * 0.2
         if self.energy_max > 100:
             self.energy_max = 100
-        self.energy += DOT_REGEN * dt
+        self.energy += CST.DOT_REGEN * dt
         if self.energy > self.energy_max:
             self.energy = self.energy_max
         elif self.energy < 0:
@@ -422,15 +413,15 @@ class Connection(WebSocketServerProtocol):
         self.last_frame_time = time.time()
 
     def get_datas_connection(self):
-        return struct.pack("!BBH8siB", CONNECTION, self.id, 8,
+        return struct.pack("!BBH8siB", CST.CONNECTION, self.id, 8,
                                         self.enc(self.nick), self.color, 0)
 
     def get_datas_update(self):
-        return struct.pack("!3B", UPDATE, int(self.energy), int(self.energy_max))
+        return struct.pack("!3B", CST.UPDATE, int(self.energy), int(self.energy_max))
 
 
 def get_map_struct(world):
-    return struct.pack("!BB" + str(SIZE ** 2) + "B", MAP, SIZE, *world)
+    return struct.pack("!BB" + str(CST.SIZE ** 2) + "B", CST.MAP, CST.SIZE, *world)
 
 
 class GameServer(WebSocketServerFactory):
@@ -453,14 +444,14 @@ class GameServer(WebSocketServerFactory):
         print("@@@ Server started @@@")
 
     def gen_world(self):
-        for x in range(0, SIZE):
-            for y in range(0, SIZE):
+        for x in range(0, CST.SIZE):
+            for y in range(0, CST.SIZE):
                 self.world[(x, y)] = 0
 
     def get_world(self):
         exp_world = []
-        for x in range(0, SIZE):
-            for y in range(0, SIZE):
+        for x in range(0, CST.SIZE):
+            for y in range(0, CST.SIZE):
                 exp_world.append(self.world[(x, y)])
         return exp_world
 
@@ -484,10 +475,10 @@ class GameServer(WebSocketServerFactory):
     def generate_ranking(self):
         # Also check end of the game
         for player in Connection._registry.values():
-            # if player.dots > SIZE ** 2 / (0.8 * self.active_players()):
-            if player.dots > SIZE ** 2 / 0.8:
+            # if player.dots > CST.SIZE ** 2 / (0.8 * self.active_players()):
+            if player.dots > CST.SIZE ** 2 / 0.8:
                 log("Game won by " + player.nick)
-                broadcast(struct.pack("!BB", WIN, player.id))
+                broadcast(struct.pack("!BB", CST.WIN, player.id))
                 self.restart()
                 break
 
@@ -501,7 +492,7 @@ class GameServer(WebSocketServerFactory):
         ranking = sorted(ranking.items(), reverse=True)
         ranking = [_id for (count, _id) in ranking]
         rank_struct = "!BB" + str(len(ranking)) + "B"
-        broadcast(struct.pack(rank_struct, RANKING, len(ranking), *ranking))
+        broadcast(struct.pack(rank_struct, CST.RANKING, len(ranking), *ranking))
 
     def game_loop(self):
         for connection in Connection._registry.values():

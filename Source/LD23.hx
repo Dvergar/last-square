@@ -23,6 +23,8 @@ import Std;
 
 import motion.Actuate;
 
+import Common.CST;
+
 
 class TextBlock extends Sprite {
     private var text:openfl.text.TextField;
@@ -35,15 +37,11 @@ class TextBlock extends Sprite {
         textMsg.x = 35;
         textMsg.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
         this.addChild(textMsg);
-        // var textMsg2 = createText(0x000000, 0, msg);
-        // textMsg2.x = 35;
-        // this.addChild(textMsg2);
+
         var textNick = createText(color, 1, nick);
         textNick.x = 10;
         textNick.transform.colorTransform = new openfl.geom.ColorTransform(0.7, 0.7, 0.7);
         this.addChild(textNick);
-        // var textNick2 = createText(0xDEDEDE, 0, nick);
-        // this.addChild(textNick2);
 
         this.graphics.beginFill(color);
         this.graphics.drawRect(0, 0, Chat.WIDTH, Chat.HEIGHT);
@@ -134,7 +132,7 @@ class Chat extends Sprite {
         switch(event.keyCode){
             case Keyboard.ENTER:
                 if(this.text.text.length > 0){
-                    socket.writeByte(Game.MESSAGE);
+                    socket.writeByte(CST.MESSAGE);
                     socket.writeUTF(this.text.text);
                     this.text.text = "";
                 }
@@ -381,20 +379,6 @@ class Bar extends Sprite {
 
 
 class Game extends Sprite {
-    public static var MESSAGE = 0;
-    public static var CONNECTION = 1;
-    public static var DOT_COLOR = 2;
-    public static var RANKING = 3;
-    public static var MAP = 4;
-    public static var DISCONNECTION = 5;
-    public static var UPDATE = 6;
-    public static var TOWER = 7;
-    public static var FULL = 8;
-    public static var WIN = 9;
-    public static var PILLAR = 10;
-    // private static var SIZE = 0;
-    private static var DOT_COST = 10;
-    private static var DOT_REGEN = 30;
     public static var LAGFREE = true;
     public static var BOARD_MARGIN_X = 250;
     public static var BOARD_MARGIN_Y = 50;
@@ -538,10 +522,10 @@ class Game extends Sprite {
                 if(event.target == dot){
 
                     // if(Game.LAGFREE) {
-                        if(dot.id != this.id && this.LFenergy > DOT_COST) {
-                            this.LFenergy -= DOT_COST;
+                        if(dot.id != this.id && this.LFenergy > CST.DOT_COST) {
+                            this.LFenergy -= CST.DOT_COST;
                             dot.focusDot(this.color);
-                            socket.writeByte(DOT_COLOR);
+                            socket.writeByte(CST.DOT_COLOR);
                             socket.writeByte(posx);
                             socket.writeByte(posy);
                         }
@@ -565,7 +549,7 @@ class Game extends Sprite {
                 var dot = this.dots[posx][posy];
                 if(event.target == dot){  // PLEASE...
                     if(dot.id == this.id) {
-                        socket.writeByte(TOWER);
+                        socket.writeByte(CST.TOWER);
                         socket.writeByte(posx);
                         socket.writeByte(posy);
                     }
@@ -581,7 +565,7 @@ class Game extends Sprite {
                 var dot = this.dots[posx][posy];
                 if(event.target == dot){  // PLEASE...
                     if(dot.id == this.id) {
-                        socket.writeByte(PILLAR);
+                        socket.writeByte(CST.PILLAR);
                         socket.writeByte(posx);
                         socket.writeByte(posy);
                     }
@@ -596,7 +580,7 @@ class Game extends Sprite {
         if (elapsedTime > 1000 / 10) {
             // if(Game.LAGFREE) {
                 if(this.id != 0) {
-                    this.LFenergy += DOT_REGEN * elapsedTime / 1000;
+                    this.LFenergy += CST.DOT_REGEN * elapsedTime / 1000;
                     if(this.LFenergy > this.energyMax) {
                         this.LFenergy = this.energyMax;
                     }
@@ -617,7 +601,7 @@ class Game extends Sprite {
         while(socket.bytesAvailable > 0) {
             var msgType = socket.readUnsignedByte();
 
-            if(msgType == CONNECTION) {
+            if(msgType == CST.CONNECTION) {
                 var _id = socket.readUnsignedByte();
                 trace("bytesavailable " + socket.bytesAvailable);
                 var nick = socket.readUTF();
@@ -645,7 +629,7 @@ class Game extends Sprite {
                 trace("Is it me ?" + me);
             }
 
-            if(msgType == DISCONNECTION) {
+            if(msgType == CST.DISCONNECTION) {
                 var _id = socket.readUnsignedByte();
                 for(player in this.players) {
                 }
@@ -656,7 +640,7 @@ class Game extends Sprite {
                 this.players.remove(Std.string(_id));
             }
 
-            if(msgType == TOWER) {
+            if(msgType == CST.TOWER) {
                 var flag = socket.readUnsignedByte();
                 var posx = socket.readUnsignedByte();
                 var posy = socket.readUnsignedByte();
@@ -669,7 +653,7 @@ class Game extends Sprite {
                 }
             }
 
-            if(msgType == PILLAR) {
+            if(msgType == CST.PILLAR) {
                 var flag = socket.readUnsignedByte();
                 var posx = socket.readUnsignedByte();
                 var posy = socket.readUnsignedByte();
@@ -682,14 +666,14 @@ class Game extends Sprite {
                 // }
             }
 
-            if(msgType == UPDATE) {
+            if(msgType == CST.UPDATE) {
                 var energy = socket.readUnsignedByte();
                 this.energyMax = socket.readUnsignedByte();
                 this.energy = energy;
                 this.energyBarLF.update(energy, this.energyMax);
             }
 
-            if(msgType == MAP) {
+            if(msgType == CST.MAP) {
                 var SIZE:Int = socket.readUnsignedByte();
                 this.dots = createDots(SIZE);
 
@@ -719,7 +703,7 @@ class Game extends Sprite {
                 }
             }
 
-            if(msgType == DOT_COLOR) {
+            if(msgType == CST.DOT_COLOR) {
                 trace("dot_color");
                 var _id = socket.readUnsignedByte();
                 var posx = socket.readUnsignedByte();
@@ -741,7 +725,7 @@ class Game extends Sprite {
                 // trace("dot" + Std.string(posx) + " " + Std.string(posy));
             }
 
-            if(msgType == MESSAGE) {
+            if(msgType == CST.MESSAGE) {
                 var _id = socket.readUnsignedByte();
                 trace("message from " + _id);
                 var chatMsg = socket.readUTF().toUpperCase ();
@@ -752,13 +736,13 @@ class Game extends Sprite {
                 this.chat.message(nick, chatMsg, color);
             }
 
-            if(msgType == WIN) {
+            if(msgType == CST.WIN) {
                 var _id = socket.readUnsignedByte();
                 var nick = this.players.get(Std.string(_id)).nick;
                 popWin(nick);
             }
 
-            if(msgType == RANKING) {
+            if(msgType == CST.RANKING) {
                 var rankNb = socket.readUnsignedByte();
                 var ranking = new Array();
                 for(i in 0...rankNb) {
@@ -768,7 +752,7 @@ class Game extends Sprite {
                 }
             }
 
-            if(msgType == FULL) {
+            if(msgType == CST.FULL) {
                 trace("SERVER FULL");
             }
 
@@ -777,7 +761,7 @@ class Game extends Sprite {
 
     private function onConnect(event:Event) {
 
-        socket.writeByte(CONNECTION);
+        socket.writeByte(CST.CONNECTION);
         socket.writeUTF(this.nick);
     }
 
