@@ -225,6 +225,31 @@ class Tile extends Sprite {
     }
 }
 
+class TileBMP extends Sprite {
+    public function new(tileX, tileY, image:String, dx:Int = 0, dy:Int = 0)
+    {
+        super();
+        this.x = tileX * Dot.DOT_SIZE + dx;
+        this.y = tileY * Dot.DOT_SIZE + dy;
+
+        addChild(new Bitmap(Assets.getBitmapData("assets/" + image)));
+    }
+
+    public function flipX()
+    {
+        scaleX = -1;
+        // scaleY = 1;
+        this.x += this.width;
+    }
+
+    public function flipY()
+    {
+        // scaleX = 1;
+        scaleY = -1;
+        this.y += this.height;
+    }
+}
+
 
 class Dot extends Sprite {
     public static var DEFAULT_COLOR = 0x542437;
@@ -326,6 +351,23 @@ class Bar extends Sprite {
             this.addChild(new Tile(x, 0, 0xd95b43));
             this.addChild(new Tile(x, 1, 0xd95b43));
         }
+
+        // CORNERS
+        var cornerTopLeft = new TileBMP(-1, 0, "corner.png");
+        this.addChild(cornerTopLeft);
+
+        var cornerTopRight = new TileBMP(board_size, 0, "corner.png");
+        cornerTopRight.flipX();
+        this.addChild(cornerTopRight);
+
+        var cornerBottomLeft = new TileBMP(-1, 1, "corner.png");
+        cornerBottomLeft.flipY();
+        this.addChild(cornerBottomLeft);
+
+        var cornerBottomRight= new TileBMP(board_size, 1, "corner.png");
+        cornerBottomRight.flipX();
+        cornerBottomRight.flipY();
+        this.addChild(cornerBottomRight);
 
         // Content
         this.content = new Sprite();
@@ -501,6 +543,22 @@ class Game extends Sprite {
         }
 
         // CONTOUR
+        var cornerTopLeft = new TileBMP(-1, -1, "corner.png", Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y);
+        this.addChild(cornerTopLeft);
+
+        var cornerTopRight = new TileBMP(SIZE, -1, "corner.png", Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y);
+        cornerTopRight.flipX();
+        this.addChild(cornerTopRight);
+
+        var cornerBottomLeft = new TileBMP(-1, SIZE, "corner.png", Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y);
+        cornerBottomLeft.flipY();
+        this.addChild(cornerBottomLeft);
+
+        var cornerBottomRight = new TileBMP(SIZE, SIZE, "corner.png", Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y);
+        cornerBottomRight.flipX();
+        cornerBottomRight.flipY();
+        this.addChild(cornerBottomRight);
+
         for(x in 0...SIZE) {
             this.addChild(new Tile(x, -1, 0xd95b43, Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y));
             this.addChild(new Tile(x, SIZE, 0xd95b43, Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y));

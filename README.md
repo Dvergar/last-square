@@ -8,6 +8,6 @@ Reviving an old Ludum dare game...
 - [ ] Refactor everything
 - [ ] Find back my rPi and host the game there
 - [x] Fixed color generation
-- [ ] Change awful sounds
+- [x] Change awful sounds
 
 PS : Be careful, that's some unsexy jam code.
