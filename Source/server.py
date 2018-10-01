@@ -104,11 +104,6 @@ def read_policy():
         return policy
 
 
-def eat_dot(_id:int):
-    if _id:
-        Connection._registry[_id].dots -= 1
-
-
 World = Dict[Tuple[int, int], int]
 
 
@@ -168,38 +163,22 @@ class Tower:
         propagating = 4
 
         if self.left in self.world:
-            eat_dot(self.world[self.left])
-            self.world[self.left] = self.owner.id
-            self.owner.dots += 1
-            broadcast(struct.pack("!4B", CST.DOT_COLOR, self.owner.id,
-                                                *self.left))
+            self.owner.push_dot(*self.left)
         else:
             propagating -= 1
 
         if self.right in self.world:
-            eat_dot(self.world[self.right])
-            self.world[self.right] = self.owner.id
-            self.owner.dots += 1
-            broadcast(struct.pack("!4B", CST.DOT_COLOR, self.owner.id,
-                                                *self.right))
+            self.owner.push_dot(*self.right)
         else:
             propagating -= 1
 
         if self.up in self.world:
-            eat_dot(self.world[self.up])
-            self.world[self.up] = self.owner.id
-            self.owner.dots += 1
-            broadcast(struct.pack("!4B", CST.DOT_COLOR, self.owner.id,
-                                                *self.up))
+            self.owner.push_dot(*self.up)
         else:
             propagating -= 1
 
         if self.down in self.world:
-            eat_dot(self.world[self.down])
-            self.world[self.down] = self.owner.id
-            self.owner.dots += 1
-            broadcast(struct.pack("!4B", CST.DOT_COLOR, self.owner.id,
-                                                *self.down))
+            self.owner.push_dot(*self.down)
         else:
             propagating -= 1
 
@@ -287,9 +266,11 @@ class Connection(WebSocketServerProtocol):
                 print("dotcolor")
                 posx, posy = int(bs.read_byte()), int(bs.read_byte())
                 if self.energy > CST.DOT_COST:
-                    self.push_dot(posx, posy)
-                else:
-                    self.temp_dots.append((posx, posy))
+                    pushed = self.push_dot(posx, posy)
+                    if pushed:
+                        self.energy -= CST.DOT_COST
+                # else:
+                #     self.temp_dots.append((posx, posy))
 
             if msg_type == CST.TOWER:
                 log("Tower create")
@@ -352,7 +333,7 @@ class Connection(WebSocketServerProtocol):
             tower.destroy()
         if self in self._registry.values():
             log("...from " + self.nick)
-            broadcast(struct.pack("!BB", DISCST.CONNECTION, self.id))
+            broadcast(struct.pack("!BB", CST.CONNECTION, self.id))
         self.disconnect()  # Here and not above !
         for (posx, posy), _id in self.factory.world.items():
             if _id == self.id:
@@ -378,10 +359,13 @@ class Connection(WebSocketServerProtocol):
                 old_owner = Connection._registry[old_owner_id]
                 old_owner.dots -= 1
             self.dots += 1
-            self.energy -= CST.DOT_COST
+            
             world[(posx, posy)] = self.id
             broadcast(struct.pack("!4B", CST.DOT_COLOR, self.id,
                                                 posx, posy))
+
+            return True
+        return False
 
     def send(self, data:bytes):
         self.tosend += data
@@ -389,9 +373,9 @@ class Connection(WebSocketServerProtocol):
     def update(self):
         dt = time.time() - self.last_frame_time
 
-        if len(self.temp_dots) > 0:
-            posx, posy = self.temp_dots.pop(0)
-            self.push_dot(posx, posy)
+        # if len(self.temp_dots) > 0:  # What is this ?
+        #     posx, posy = self.temp_dots.pop(0)
+        #     self.push_dot(posx, posy)
 
         self.energy_max = 20 + self.dots * 0.2
         if self.energy_max > 100:
