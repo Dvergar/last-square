@@ -225,6 +225,7 @@ class Tile extends Sprite {
     }
 }
 
+
 class TileBMP extends Sprite {
     public function new(tileX, tileY, image:String, dx:Int = 0, dy:Int = 0)
     {
@@ -238,18 +239,62 @@ class TileBMP extends Sprite {
     public function flipX()
     {
         scaleX = -1;
-        // scaleY = 1;
         this.x += this.width;
     }
 
     public function flipY()
     {
-        // scaleX = 1;
         scaleY = -1;
         this.y += this.height;
     }
 }
 
+
+
+class Pillar extends Sprite {
+    public function new(x, y, color)
+    {
+        super();
+        this.x = Game.BOARD_MARGIN_X + x * Dot.DOT_SIZE;
+        this.y = Game.BOARD_MARGIN_Y + y * Dot.DOT_SIZE;
+
+        this.graphics.beginFill(color);
+        this.graphics.drawCircle(8, 8, 8);
+        this.graphics.endFill();
+
+        this.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
+    }
+
+    public static function attack(color:Int, pillarX:Int, pillarY:Int, attackX:Int, attackY:Int)
+    {
+        trace("attack");
+        var sourcePos = Tool.boardPosition(pillarX, pillarY);
+        var targetPos = Tool.boardPosition(attackX, attackY);
+        var line = new Shape();
+        line.graphics.lineStyle (2, color, 1);
+        line.graphics.beginFill(color);
+        line.graphics.moveTo(sourcePos[0] + Dot.DOT_SIZE / 2, sourcePos[1] + Dot.DOT_SIZE / 2);
+        line.graphics.lineTo(targetPos[0] + Dot.DOT_SIZE / 2, targetPos[1] + Dot.DOT_SIZE / 2);
+        line.graphics.endFill();
+
+        line.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
+        openfl.Lib.current.stage.addChild(line);
+
+        Actuate.tween(line, 4, {alpha:0}).onComplete(function() {
+            openfl.Lib.current.stage.removeChild(line);
+        });
+    }
+}
+
+
+class Tool
+{
+    static public function boardPosition(posx:Int, posy:Int):Array<Int>
+    {
+        return [Game.BOARD_MARGIN_X + posx * Dot.DOT_SIZE,
+                Game.BOARD_MARGIN_Y + posy * Dot.DOT_SIZE];
+    }
+}
 
 class Dot extends Sprite {
     public static var DEFAULT_COLOR = 0x542437;
@@ -278,16 +323,18 @@ class Dot extends Sprite {
         this.graphics.beginFill(color);
         this.graphics.drawRect(0, 0, DOT_SIZE, DOT_SIZE);
         this.graphics.endFill();
+        // this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 0, 0 ,0);
+        Actuate.stop(this.transform.colorTransform, null, false, false);
         this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 14, 14 ,14);
         Actuate.tween(this.transform.colorTransform, 4, {redOffset:0, greenOffset:0, blueOffset:0});
     }
 
-    public function createPillar() {
-        this.graphics.beginFill(0xf44542);
-        this.graphics.drawCircle(8, 8, 8);
-        this.graphics.endFill();
-        // this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64 ,64);
-    }
+    // public function createPillar() {
+    //     this.graphics.beginFill(0xf44542);
+    //     this.graphics.drawCircle(8, 8, 8);
+    //     this.graphics.endFill();
+    //     // this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64 ,64);
+    // }
 
     public function createTower() {
         createDot(this.color, 0x1C1C1C, 4);
@@ -329,6 +376,8 @@ class Bar extends Sprite {
     private var content:Sprite;
     private var line:Sprite;
     private var realWidth:Int;
+    private var skill_cross:Bitmap;
+    private var skill_tower:Bitmap;
 
     public function new(color:Int, board_size:Int) {
         super();
@@ -388,7 +437,6 @@ class Bar extends Sprite {
         this.addChild(this.line);
 
         // Tower lines
-
         var xTower = 25 * realWidth / 100;
         var yTower = pad / 2;
         for(i in 1...4) {
@@ -401,15 +449,27 @@ class Bar extends Sprite {
         }
 
         // PLACE SKILLS
-        var cross = new Bitmap(Assets.getBitmapData("assets/cross.png"));
-        cross.x = xTower - cross.width / 2;
-        cross.y = yTower + 38;
-        this.addChild(cross);
+        this.skill_cross = new Bitmap(Assets.getBitmapData("assets/cross.png"));
+        skill_cross.x = xTower - skill_cross.width / 2;
+        skill_cross.y = yTower + 38;
+        this.addChild(skill_cross);
 
-        var tower = new Bitmap(Assets.getBitmapData("assets/tower.png"));
-        tower.x = 2 * xTower - tower.width / 2;
-        tower.y = yTower + 38;
-        this.addChild(tower);
+        this.skill_tower = new Bitmap(Assets.getBitmapData("assets/tower.png"));
+        skill_tower.x = 2 * xTower - skill_tower.width / 2;
+        skill_tower.y = yTower + 38;
+        this.addChild(skill_tower);
+    }
+
+    var skill1Unlocked = false;
+    var skill2Unlocked = false;
+
+    public function unlockSkill(skillNum:Int)
+    {
+        if(skillNum == 1 && !skill1Unlocked)
+        {
+            skill_cross.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64, 64);
+            skill1Unlocked = true;
+        }
     }
 
     public function update(energy:Int, energyMax:Int) {
@@ -433,12 +493,13 @@ class Game extends Sprite {
     private var myPlayer:Player;
     private var players:Map<String, Player>;
     private var dots:Array<Array<Dot>>;
+    private var pillars:Array<Pillar> = new Array();
     private var square:Sprite;
     private var theDot:Dot;
     private var winTimer:haxe.Timer;
     private var energyBar:Bar;
     private var energyBarLF:Bar;
-    private var energy:Int;
+    private var energy:Int = CST.ENERGY_DEFAULT;
     private var energyMax:Int;
     private var LFenergy:Float;
     private var chat:Chat;
@@ -453,8 +514,8 @@ class Game extends Sprite {
         this.id = 0;
         this.players = new Map();
         // this.dots = createDots();
-        this.energy = 0;
-        this.LFenergy = 0;
+        // this.energy = 0;
+        this.LFenergy = this.energy;
         this.tick = Assets.getSound("assets/sound/click1.wav");
         this.vlam = Assets.getSound("assets/sound/click1.wav");
         
@@ -573,7 +634,7 @@ class Game extends Sprite {
     }
 
     private function onMouseOver(event:MouseEvent) {
-        trace("mousover");
+        trace("mouseover");
         for(posx in 0...this.dots.length) {
             for(posy in 0...this.dots[posx].length) {
                 var dot = this.dots[posx][posy];
@@ -581,7 +642,7 @@ class Game extends Sprite {
 
                     // if(Game.LAGFREE) {
                         if(dot.id != this.id && this.LFenergy > CST.DOT_COST) {
-                            this.LFenergy -= CST.DOT_COST;
+                            // this.LFenergy -= CST.DOT_COST;
                             dot.focusDot(this.color);
                             socket.writeByte(CST.DOT_COLOR);
                             socket.writeByte(posx);
@@ -713,10 +774,15 @@ class Game extends Sprite {
 
             if(msgType == CST.PILLAR) {
                 var flag = socket.readUnsignedByte();
+                var ownerId = socket.readUnsignedByte();
+                var player = this.players.get(Std.string(ownerId));
                 var posx = socket.readUnsignedByte();
                 var posy = socket.readUnsignedByte();
                 if(flag == 1) {
-                    this.dots[posx][posy].createPillar();
+                    var pillar = new Pillar(posx, posy, player.color);
+                    addChild(pillar);
+                    pillars.push(pillar);
+                    // this.dots[posx][posy].createPillar();
                     // this.vlam.play();
                 }
                 // else {
@@ -724,11 +790,24 @@ class Game extends Sprite {
                 // }
             }
 
+            if(msgType == CST.PILLAR_ATTACK) {
+                var ownerId = socket.readUnsignedByte();
+                var player = this.players.get(Std.string(ownerId));
+                var pillarX = socket.readUnsignedByte();
+                var pillarY = socket.readUnsignedByte();
+                var attackX = socket.readUnsignedByte();
+                var attackY = socket.readUnsignedByte();
+                Pillar.attack(player.color, pillarX, pillarY, attackX, attackY);
+            }
+
             if(msgType == CST.UPDATE) {
                 var energy = socket.readUnsignedByte();
                 this.energyMax = socket.readUnsignedByte();
                 this.energy = energy;
+                this.LFenergy = energy;
                 this.energyBarLF.update(energy, this.energyMax);
+
+                if(this.energy > 25) energyBarLF.unlockSkill(1);
             }
 
             if(msgType == CST.MAP) {
@@ -777,10 +856,6 @@ class Game extends Sprite {
                 else {
                     this.dots[posx][posy].changeColor(_id, Dot.DEFAULT_COLOR);
                 }
-
-                // var player = this.players.get(Std.string(_id));
-                // this.dots[posx][posy].changeColor(player.color);
-                // trace("dot" + Std.string(posx) + " " + Std.string(posy));
             }
 
             if(msgType == CST.MESSAGE) {

@@ -11,10 +11,13 @@ class CST
 	public static inline var FULL = 8;
 	public static inline var WIN = 9;
 	public static inline var PILLAR = 10;
+	public static inline var PILLAR_ATTACK = 11;
 
 	public static inline var SIZE = 27;  // SERVER-ONLY
-	public static inline var DOT_COST = 10;  // SERVER+CLIENT
-	public static inline var DOT_REGEN = 30;  // SERVER+CLIENT
+	public static inline var DOT_COST = 1;  // SERVER+CLIENT
+	public static inline var DOT_REGEN = 3;  // SERVER+CLIENT
+	public static inline var SECTOR_COST = 25;
+	public static inline var ENERGY_DEFAULT = 100;
 
 	public function new() {}
 }

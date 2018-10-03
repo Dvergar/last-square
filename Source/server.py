@@ -138,9 +138,10 @@ class Pillar:
             for (dx, dy) in self.checklist:
                 x = self.x + x_off + dx
                 y = self.y + y_off + dy
-                if self.world[x, y] != self.owner.id:
-                    broadcast(struct.pack("!4B", CST.DOT_COLOR, self.owner.id,
-                                                        x, y))
+                self.owner.push_dot(x, y)
+            target_x = self.x + x_off
+            target_y = self.y + y_off
+            broadcast(struct.pack("!6B", CST.PILLAR_ATTACK, self.owner.id, self.x, self.y, target_x, target_y))
         except KeyError:
             pass
 
@@ -195,7 +196,7 @@ class Tower:
 class Connection(WebSocketServerProtocol):
     _registry:Dict[int, Connection] = {}
     _ids:List[int] = list(range(1, 255))
-    energy = 100
+    energy = CST.ENERGY_DEFAULT
     dots = 0
 
     def __init__(self):
@@ -263,7 +264,6 @@ class Connection(WebSocketServerProtocol):
                 self.send(get_map_struct(exp_world))
 
             if msg_type == CST.DOT_COLOR:
-                print("dotcolor")
                 posx, posy = int(bs.read_byte()), int(bs.read_byte())
                 if self.energy > CST.DOT_COST:
                     pushed = self.push_dot(posx, posy)
@@ -275,10 +275,8 @@ class Connection(WebSocketServerProtocol):
             if msg_type == CST.TOWER:
                 log("Tower create")
                 posx, posy = int(bs.read_byte()), int(bs.read_byte())
-                print(posx, posy)
-                if self.energy_max // 25 > len(self.towers):
+                if self.energy > 25:
                     try:
-                        print("ok")
                         buildable = True
                         world = self.factory.world
                         for (dx, dy) in self.checklist:
@@ -288,6 +286,8 @@ class Connection(WebSocketServerProtocol):
                             print("buildable")
                             broadcast(struct.pack("!4B", CST.TOWER, 1, posx, posy))
                             self.towers.append(Tower(posx, posy, world, self))
+                            self.energy -= 25
+                            # if(self.energy < 0): self.energy = 0
                     except KeyError:
                         pass
 
@@ -295,7 +295,7 @@ class Connection(WebSocketServerProtocol):
                 log("Pillar create")
                 posx, posy = int(bs.read_byte()), int(bs.read_byte())
                 print(posx, posy)
-                # if self.energy_max // 25 > len(self.towers):
+                # if self.energy_max // CST.SECTOR_COST > 2:
                 try:
                     buildable = True
                     world = self.factory.world
@@ -303,7 +303,7 @@ class Connection(WebSocketServerProtocol):
                             buildable = False
                     if buildable:
                         print("buildable")
-                        broadcast(struct.pack("!4B", CST.PILLAR, 1, posx, posy))
+                        broadcast(struct.pack("!5B", CST.PILLAR, 1, self.id, posx, posy))
                         self.pillars.append(Pillar(posx, posy, world, self))
                 except KeyError:
                     pass
@@ -378,6 +378,7 @@ class Connection(WebSocketServerProtocol):
         #     self.push_dot(posx, posy)
 
         self.energy_max = 20 + self.dots * 0.2
+
         if self.energy_max > 100:
             self.energy_max = 100
         self.energy += CST.DOT_REGEN * dt
