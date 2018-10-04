@@ -9,5 +9,6 @@ Reviving an old Ludum dare game...
 - [ ] Find back my rPi and host the game there
 - [x] Fixed color generation
 - [x] Change awful sounds
+- [ ] Deterministic energy regen
 
 PS : Be careful, that's some unsexy jam code.

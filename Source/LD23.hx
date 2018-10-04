@@ -17,7 +17,6 @@ import openfl.events.IOErrorEvent;
 import openfl.events.SecurityErrorEvent;
 import openfl.net.Socket;
 import openfl.events.ProgressEvent;
-import openfl.external.ExternalInterface;
 import openfl.utils.Endian;
 import Std;
 
@@ -28,42 +27,39 @@ import Common.CST;
 
 class TextBlock extends Sprite {
     private var text:openfl.text.TextField;
+    private var color:Int;
 
-    public function new(y, msg:String, color:Int, nick:String) {
+    public function new(y:Int, msg:String, color:Int, nick:String)
+    {
         super();
+        this.color = color;
 
-        nick = nick.substr(0, 1);
-        var textMsg = createText(color, 1, msg);
-        textMsg.x = 35;
-        textMsg.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
-        this.addChild(textMsg);
-
-        var textNick = createText(color, 1, nick);
-        textNick.x = 10;
+        // NICKNAME
+        nick = nick.substr(0, 1);  // KEEP ONLY FIRST NICKNAME LETTER
+        var textNick = createText(10 , nick);
         textNick.transform.colorTransform = new openfl.geom.ColorTransform(0.7, 0.7, 0.7);
         this.addChild(textNick);
 
+        // MESSAGE
+        var textMsg = createText(35, msg);
+        textMsg.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
+        this.addChild(textMsg);
+
+        // CONTAINER
         this.graphics.beginFill(color);
-        this.graphics.drawRect(0, 0, Chat.WIDTH, Chat.HEIGHT);
+        this.graphics.drawRect(0, 0, Game.COLUMN_WIDTH, Chat.HEIGHT);
         this.graphics.endFill();
         this.y = openfl.Lib.current.stage.stageHeight - Chat.DY - Chat.HEIGHT;
     }
 
-    private function createText(color, offset, content) {
-        var font = Assets.getFont(Game.FONT); 
-        var format = new TextFormat (font.fontName); 
-        format.size = 26;
-        var text:TextField = new TextField();
-        text.defaultTextFormat = format;
-        text.embedFonts = true;
-        text.text = content;
-        text.textColor = color;
-        // text.y = offset;
-        // text.x = offset;
+    private function createText(x:Int, content:String)
+    {
+        var text = Tool.getTextField(x, 0, content, 26);
         text.selectable = false;
-
+        text.textColor = color;
+        text.width = Game.COLUMN_WIDTH;
         text.height = Chat.HEIGHT;
-        text.width = Chat.WIDTH;
+
         return text;
     }
 
@@ -74,73 +70,70 @@ class TextBlock extends Sprite {
 
 
 class Chat extends Sprite {
-    private var text:openfl.text.TextField;
+    private var msg:openfl.text.TextField = new openfl.text.TextField();
     private var socket:Socket;
     private var messages:Array<TextBlock>;
-    public static var WIDTH:Int = 180;
+
     public static var HEIGHT:Int = 48;
     public static var DY:Int = 50;
 
-    public function new(socket, color:Int) {
+    public function new(socket, color:Int)
+    {
         super();
         this.socket = socket;  // Has nothing to do here
         this.messages = new Array();
 
-        var font = Assets.getFont(Game.FONT); 
-        var format = new TextFormat (font.fontName); 
-        format.size = 26;
-
-        this.text = new openfl.text.TextField();
-        this.text.embedFonts = true;
-        this.text.defaultTextFormat = format;
-        this.text.x = 0;
-        this.text.y = openfl.Lib.current.stage.stageHeight - DY;
-        this.text.height = Chat.HEIGHT;
-        this.text.width = WIDTH;
-        // this.text.background = true;
-        // this.text.backgroundColor = color;
+        // TEXT
+        var msgY = openfl.Lib.current.stage.stageHeight - DY;
+        this.msg = Tool.getTextField(0, msgY, "HELLO !", 26);
+        this.msg.type = openfl.text.TextFieldType.INPUT;
+        this.msg.wordWrap = true;
+        this.msg.maxChars = 15;
+        this.msg.height = HEIGHT;
+        this.msg.width = Game.COLUMN_WIDTH;
+        this.msg.textColor = color;
+        this.msg.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
 
         // INPUT BOX COLOR
-        var s = new Shape();
-        s.graphics.clear();
-        s.graphics.beginFill(color);
-        s.graphics.drawRect(text.x, text.y, text.width, text.height);
-        s.graphics.endFill();
-        s.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64, 64);
-        addChild(s);
+        var inputBox = new Shape();
+        inputBox.graphics.clear();
+        inputBox.graphics.beginFill(color);
+        inputBox.graphics.drawRect(msg.x, msg.y, msg.width, msg.height);
+        inputBox.graphics.endFill();
+        inputBox.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64, 64);
+
+
+        this.addChild(inputBox);
+        this.addChild(this.msg);
+
+        this.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
 
         // CONTOUR
         // this.graphics.clear();
         // this.graphics.beginFill(0xd95b43);
-        // this.graphics.drawRect(text.x, text.y, text.width, text.height);
+        // this.graphics.drawRect(msg.x, msg.y, msg.width, msg.height);
         // this.graphics.endFill();
 
         // DEBUG
-        // this.text.border = true;
-        // this.text.borderColor = 0xf44242;
-
-        this.text.wordWrap = true;
-        this.text.type = openfl.text.TextFieldType.INPUT;
-        this.text.text = "HELLO !";
-        this.text.maxChars = 28;
-        this.addChild(this.text);
-
-        this.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+        // this.msg.border = true;
+        // this.msg.borderColor = 0xf44242;
     }
 
-    private function onKeyDown(event:KeyboardEvent) {
+    private function onKeyDown(event:KeyboardEvent)
+    {
         switch(event.keyCode){
             case Keyboard.ENTER:
-                if(this.text.text.length > 0){
+                if(this.msg.text.length > 0){
                     socket.writeByte(CST.MESSAGE);
-                    socket.writeUTF(this.text.text);
-                    this.text.text = "";
+                    socket.writeUTF(this.msg.text);
+                    this.msg.text = "";
                 }
         }
     }
 
-    public function message(nick:String, msg:String, color:Int) {
-        var block = new TextBlock(openfl.Lib.current.stage.stageHeight, msg, color, nick);
+    public function message(nick:String, text:String, color:Int)
+    {
+        var block = new TextBlock(openfl.Lib.current.stage.stageHeight, text, color, nick);
         this.addChild(block);
 
         var i = 0;
@@ -160,80 +153,75 @@ class Chat extends Sprite {
 }
 
 
-class Player extends Sprite {
+class Rank extends Sprite
+{
     public var id:Int;
     public var nick:String;
     public var color:Int;
     private var rankText:TextField;
-    private var rankText2:TextField;
-    public static var HEIGHT:Int = 30;
+    private static inline var HEIGHT:Int = 30;
 
-    public function new(id, nick, color) {
+    public function new(id:Int, nick:String, color:Int)
+    {
         super();
         this.id = id;
         this.nick = nick.toUpperCase();
         this.color = color;
-        this.y = -100;
-        // background
+        this.y = 0;
+
+        // BACKGROUND
         this.graphics.clear();
         this.graphics.beginFill(this.color);
-        this.graphics.drawRect(0, 0, Chat.WIDTH, HEIGHT);
+        this.graphics.drawRect(0, 0, Game.COLUMN_WIDTH, HEIGHT);
         this.graphics.endFill();  
 
         this.rankText = createText();
         this.addChild(rankText);
-        // this.rankText2 = createText(0x000000, 1);
-        // this.addChild(rankText2);
-
-        this.addChild(this.rankText);
     }
 
-    private function createText() {
-        var font = Assets.getFont(Game.FONT); 
-        var format = new TextFormat (font.fontName);
-        format.size = 16;
-        var text:TextField = new TextField();
-        text.defaultTextFormat = format;
-        text.embedFonts = true;
-        text.text = this.nick;
-        text.textColor = color;
-        text.x = 10;
-        text.y = 6;
-        // text.alpha = 0.5;
+    private function createText()
+    {
+        trace("Rank ceratetext");
+        var text = Tool.getTextField(10, 6, this.nick, 16);
         text.selectable = false;
+        text.textColor = color;
         text.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
+
         return text;
     }
 
-    public function moveText(y) {
-        this.y = y;
+    public function moveText(k)
+    {
+        this.y = k * HEIGHT;
     }
 }
 
 
-class Tile extends Sprite {
-    public function new(tileX, tileY, color, dx:Int = 0, dy:Int = 0)
+class Tile extends Sprite
+{
+    public function new(tileX:Int, tileY:Int, color:Int, dx:Int = 0, dy:Int = 0)
     {
         super();
-        this.x = tileX * Dot.DOT_SIZE + dx;
-        this.y = tileY * Dot.DOT_SIZE + dy;
+        this.x = tileX * Dot.SIZE + dx;
+        this.y = tileY * Dot.SIZE + dy;
 
         this.graphics.clear();
         this.graphics.beginFill(0xd95b43);
-        this.graphics.drawRect(0, 0, Dot.DOT_SIZE, Dot.DOT_SIZE);
+        this.graphics.drawRect(0, 0, Dot.SIZE, Dot.SIZE);
         this.graphics.endFill();
     }
 }
 
 
-class TileBMP extends Sprite {
-    public function new(tileX, tileY, image:String, dx:Int = 0, dy:Int = 0)
+class TileBMP extends Sprite
+{
+    public function new(tileX:Int, tileY:Int, image:String, dx:Int = 0, dy:Int = 0)
     {
         super();
-        this.x = tileX * Dot.DOT_SIZE + dx;
-        this.y = tileY * Dot.DOT_SIZE + dy;
+        this.x = tileX * Dot.SIZE + dx;
+        this.y = tileY * Dot.SIZE + dy;
 
-        addChild(new Bitmap(Assets.getBitmapData("assets/" + image)));
+        this.addChild(new Bitmap(Assets.getBitmapData("assets/" + image)));
     }
 
     public function flipX()
@@ -251,30 +239,38 @@ class TileBMP extends Sprite {
 
 
 
-class Pillar extends Sprite {
-    public function new(x, y, color)
+class Pillar extends Sprite
+{
+    public var ownerId:Int;
+
+    public function new(ownerId:Int, tileX:Int, tileY:Int, color:Int)
     {
         super();
-        this.x = Game.BOARD_MARGIN_X + x * Dot.DOT_SIZE;
-        this.y = Game.BOARD_MARGIN_Y + y * Dot.DOT_SIZE;
+        this.ownerId = ownerId;
+        this.x = Tool.ToPixelX(tileX);
+        this.y = Tool.ToPixelY(tileY);
 
+        // TOWER GRAPHICS
         this.graphics.beginFill(color);
         this.graphics.drawCircle(8, 8, 8);
         this.graphics.endFill();
-
         this.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
     }
 
-    public static function attack(color:Int, pillarX:Int, pillarY:Int, attackX:Int, attackY:Int)
+    public static function attack(color:Int, sourceTileX:Int, sourceTileY:Int,
+                                            targetTileX:Int, targetTileY:Int)
     {
-        trace("attack");
-        var sourcePos = Tool.boardPosition(pillarX, pillarY);
-        var targetPos = Tool.boardPosition(attackX, attackY);
+        var sourceX = Tool.ToPixelX(sourceTileX) + Dot.SIZE / 2;
+        var sourceY = Tool.ToPixelY(sourceTileY) + Dot.SIZE / 2;
+        var targetX = Tool.ToPixelX(targetTileX) + Dot.SIZE / 2;
+        var targetY = Tool.ToPixelY(targetTileY) + Dot.SIZE / 2;
+
+        // LINE BETWEEN PILLAR AND ATTACK BLOCK
         var line = new Shape();
         line.graphics.lineStyle (2, color, 1);
         line.graphics.beginFill(color);
-        line.graphics.moveTo(sourcePos[0] + Dot.DOT_SIZE / 2, sourcePos[1] + Dot.DOT_SIZE / 2);
-        line.graphics.lineTo(targetPos[0] + Dot.DOT_SIZE / 2, targetPos[1] + Dot.DOT_SIZE / 2);
+        line.graphics.moveTo(sourceX, sourceY);
+        line.graphics.lineTo(targetX, targetY);
         line.graphics.endFill();
 
         line.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
@@ -289,63 +285,77 @@ class Pillar extends Sprite {
 
 class Tool
 {
-    static public function boardPosition(posx:Int, posy:Int):Array<Int>
+    static inline public inline function ToPixelX(tileX:Int)
+        return Game.BOARD_MARGIN_X + tileX * Dot.SIZE;
+
+    static inline public function ToPixelY(tileY:Int)
+        return Game.BOARD_MARGIN_Y + tileY * Dot.SIZE;
+
+    static inline public function getTextField(x:Float, y:Float, text:String, size:Int)
     {
-        return [Game.BOARD_MARGIN_X + posx * Dot.DOT_SIZE,
-                Game.BOARD_MARGIN_Y + posy * Dot.DOT_SIZE];
+        var font = Assets.getFont(Game.FONT);
+        var format = new TextFormat (font.fontName); 
+        format.size = size;
+
+        var textField = new TextField();
+        textField.defaultTextFormat = format;
+        textField.embedFonts = true;
+        textField.text = text;
+        textField.x = x;
+        textField.y = y;
+
+        return textField;
     }
 }
 
-class Dot extends Sprite {
-    public static var DEFAULT_COLOR = 0x542437;
-    public static var DEFAULT_BORDER_COLOR = 0xE8E8E8;
-    public static var DEFAULT_BORDER_SIZE = 1;
-    public static var DOT_SIZE = 16;
+
+class Dot extends Sprite
+{
+    public static inline var DEFAULT_COLOR = 0x542437;
+    public static inline var SIZE = 16;
     public var id:Int;
     private var color:Int;
     private var towerTimer:haxe.Timer;
     private var dotTimer:haxe.Timer;
 
 
-    public function new(x, y) {
+    public function new(tileX, tileY) {
         super();
-        this.createDot(DEFAULT_COLOR, DEFAULT_BORDER_COLOR, DEFAULT_BORDER_SIZE);
-        this.x = Game.BOARD_MARGIN_X + x * DOT_SIZE;
-        this.y = Game.BOARD_MARGIN_Y + y * DOT_SIZE;
+        this.createDot(DEFAULT_COLOR);
         this.id = 0;
-        this.color = DEFAULT_COLOR;
+        this.x = Tool.ToPixelX(tileX);
+        this.y = Tool.ToPixelY(tileY);
+        // this.color = DEFAULT_COLOR;
         this.dotTimer = new haxe.Timer(1);
     }
 
-    private function createDot(color:Int, borderColor:Int, borderSize:Int) {
+    private function createDot(color:Int) {
         this.graphics.clear();
-        // this.graphics.lineStyle(borderSize, borderColor);
         this.graphics.beginFill(color);
-        this.graphics.drawRect(0, 0, DOT_SIZE, DOT_SIZE);
+        this.graphics.drawRect(0, 0, SIZE, SIZE);
         this.graphics.endFill();
+
+        // CLIENT-SIDE PREDICTION
         // this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 0, 0 ,0);
         Actuate.stop(this.transform.colorTransform, null, false, false);
         this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 14, 14 ,14);
         Actuate.tween(this.transform.colorTransform, 4, {redOffset:0, greenOffset:0, blueOffset:0});
     }
 
-    // public function createPillar() {
-    //     this.graphics.beginFill(0xf44542);
-    //     this.graphics.drawCircle(8, 8, 8);
-    //     this.graphics.endFill();
-    //     // this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64 ,64);
-    // }
-
-    public function createTower() {
-        createDot(this.color, 0x1C1C1C, 4);
+    public function createTower()
+    {
+        // createDot(this.color);
         this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 32, 32 ,32);
     }
 
-    public function destroyTower() {
-        createDot(this.color, DEFAULT_BORDER_COLOR, DEFAULT_BORDER_SIZE);
+    public function destroyTower()
+    {
+        // createDot(this.color, DEFAULT_BORDER_COLOR, DEFAULT_BORDER_SIZE);
     }
-    public function focusDot(color:Int) {
-        createDot(color, DEFAULT_BORDER_COLOR, DEFAULT_BORDER_SIZE);
+
+    public function focusDot(newColor:Int)
+    {
+        createDot(newColor);
         // if(Game.LAGFREE) {
             this.alpha = 0.5;
             this.dotTimer = new haxe.Timer(2000);
@@ -353,41 +363,44 @@ class Dot extends Sprite {
         // }
     }
 
-    private function resetDot() {
+    private function resetDot()
+    {
         this.alpha = 1;
         this.dotTimer.stop();
-        createDot(this.color, DEFAULT_BORDER_COLOR, DEFAULT_BORDER_SIZE);
+        createDot(this.color);
     }
 
-    public function changeColor(_id:Int, color:Int) {
+    public function changeColor(_id:Int, newColor:Int)
+    {
         if(Game.LAGFREE) {
             this.alpha = 1;
             this.dotTimer.stop();
         }
-        createDot(color, DEFAULT_BORDER_COLOR, DEFAULT_BORDER_SIZE);
+        createDot(newColor);
         this.id = _id;
         this.alpha = 1;
-        this.color = color;
+        this.color = newColor;
     }
 }
 
 
-class Bar extends Sprite {
+class Bar extends Sprite
+{
     private var content:Sprite;
     private var line:Sprite;
     private var realWidth:Int;
     private var skill_cross:Bitmap;
     private var skill_tower:Bitmap;
 
-    public function new(color:Int, board_size:Int) {
+    public function new(color:Int) {
         super();
-        var WIDTH = board_size * Dot.DOT_SIZE;
+        var WIDTH = CST.SIZE * Dot.SIZE;
         var HEIGHT = 2 * 16;
         var pad = 10;
         this.realWidth = WIDTH - 2 * pad;
-        var yOffset = 2*Dot.DOT_SIZE;
+        var yOffset = 2*Dot.SIZE;
         this.x = Game.BOARD_MARGIN_X;
-        this.y = Game.BOARD_MARGIN_Y + board_size * Dot.DOT_SIZE + yOffset;
+        this.y = Game.BOARD_MARGIN_Y + CST.SIZE * Dot.SIZE + yOffset;
 
         // // Border
         // this.graphics.lineStyle(bsize, 0xE8E8E8);
@@ -396,16 +409,16 @@ class Bar extends Sprite {
         // this.graphics.endFill();
 
         // TILES
-        for(x in 0...board_size) {
-            this.addChild(new Tile(x, 0, 0xd95b43));
-            this.addChild(new Tile(x, 1, 0xd95b43));
+        for(tileX in 0...CST.SIZE){
+            this.addChild(new Tile(tileX, 0, 0xd95b43));
+            this.addChild(new Tile(tileX, 1, 0xd95b43));
         }
 
         // CORNERS
         var cornerTopLeft = new TileBMP(-1, 0, "corner.png");
         this.addChild(cornerTopLeft);
 
-        var cornerTopRight = new TileBMP(board_size, 0, "corner.png");
+        var cornerTopRight = new TileBMP(CST.SIZE, 0, "corner.png");
         cornerTopRight.flipX();
         this.addChild(cornerTopRight);
 
@@ -413,7 +426,7 @@ class Bar extends Sprite {
         cornerBottomLeft.flipY();
         this.addChild(cornerBottomLeft);
 
-        var cornerBottomRight= new TileBMP(board_size, 1, "corner.png");
+        var cornerBottomRight= new TileBMP(CST.SIZE, 1, "corner.png");
         cornerBottomRight.flipX();
         cornerBottomRight.flipY();
         this.addChild(cornerBottomRight);
@@ -439,7 +452,8 @@ class Bar extends Sprite {
         // Tower lines
         var xTower = 25 * realWidth / 100;
         var yTower = pad / 2;
-        for(i in 1...4) {
+        for(i in 1...4)
+        {
             var tline = new Sprite();
             tline.graphics.beginFill(0xffe17561);
             tline.graphics.drawRect(i * xTower, yTower,
@@ -472,53 +486,71 @@ class Bar extends Sprite {
         }
     }
 
-    public function update(energy:Int, energyMax:Int) {
+    public function update(energy:Int, energyMax:Int)
+    {
         this.content.scaleX = energy / 100;
         this.line.x = this.realWidth / 100 * energyMax;
     }
 }
 
 
+class Player
+{
+    public var id:Int;
+    public var nick:String;
+    public var color:Int;
 
-class Game extends Sprite {
+    public function new(id:Int, nick:String, color:Int)
+    {
+        this.id = id;
+        this.nick = nick;
+        this.color = color;
+    }
+}
+
+
+class Game extends Sprite
+{
+    public static var COLUMN_WIDTH = 230;
     public static var LAGFREE = true;
-    public static var BOARD_MARGIN_X = 250;
+    public static var BOARD_MARGIN_X = 300;
     public static var BOARD_MARGIN_Y = 50;
     public static var FONT = "assets/hello-world.ttf";
 
-    private var socket:Socket;
+    // PLAYER
     private var nick:String;
-    private var startTime:Int;
-    private var id:Int;
-    private var myPlayer:Player;
-    private var players:Map<String, Player>;
-    private var dots:Array<Array<Dot>>;
-    private var pillars:Array<Pillar> = new Array();
-    private var square:Sprite;
-    private var theDot:Dot;
-    private var winTimer:haxe.Timer;
+    private var id:Int = 0;
+    private var color:Int;
+    private var energy:Int = CST.ENERGY_DEFAULT;
+    private var LFenergy:Float = CST.ENERGY_DEFAULT;
+    private var energyMax:Int;
+
+    // UI
     private var energyBar:Bar;
     private var energyBarLF:Bar;
-    private var energy:Int = CST.ENERGY_DEFAULT;
-    private var energyMax:Int;
-    private var LFenergy:Float;
+    private var ranks:Map<Int, Rank> = new Map();
     private var chat:Chat;
-    private var winText:TextField;
-    private var tick:openfl.media.Sound;
-    private var vlam:openfl.media.Sound;
-    private var color:Int;
+    
+    // SOUND
+    private var tick:openfl.media.Sound = Assets.getSound("assets/sound/click1.wav");
+    private var vlam:openfl.media.Sound = Assets.getSound("assets/sound/click1.wav");
 
-    public function new(nick:String) {
+    // WORLD
+    private var players:Map<Int, Player> = new Map();
+    private var dots:Array<Array<Dot>>;
+    private var pillars:Array<Pillar> = new Array();
+    
+    // MISC
+    private var socket:Socket;
+    private var startTime:Int;
+    private var winTimer:haxe.Timer;
+    private var winText:TextField;
+
+    public function new(nick:String)
+    {
         super();
         this.nick = nick;
-        this.id = 0;
-        this.players = new Map();
-        // this.dots = createDots();
-        // this.energy = 0;
-        this.LFenergy = this.energy;
-        this.tick = Assets.getSound("assets/sound/click1.wav");
-        this.vlam = Assets.getSound("assets/sound/click1.wav");
-        
+
         // FPS
         // var fps = new nme.display.FPS();
         // fps.x = 50;
@@ -541,32 +573,28 @@ class Game extends Sprite {
     }
 
 
-    private function popWin(nick:String) {
-        var font = Assets.getFont(Game.FONT); 
-        var format = new TextFormat (font.fontName); 
-        format.size = 50;
-        this.winText = new TextField();
-        this.winText.defaultTextFormat = format;
-        this.winText.embedFonts = true;
-        this.winText.text = nick + " Won";
+    private function popWin(nick:String)
+    {
+        var winX = openfl.Lib.current.stage.stageWidth / 2 - 100;
+        var winY = openfl.Lib.current.stage.stageHeight / 2;
+
+        this.winText = Tool.getTextField(winX, winY, nick + " Won", 50);
         this.winText.width = 800;
-        this.winText.x = openfl.Lib.current.stage.stageWidth / 2 - 100;
-        this.winText.y = openfl.Lib.current.stage.stageHeight / 2;
         this.addChild(this.winText);
 
         this.winTimer = new haxe.Timer(3000);
         this.winTimer.run = dePopWin;
     }
 
-    private function dePopWin() {
+    private function dePopWin()
+    {
         this.winTimer.stop();
         this.removeChild(this.winText);
     }
 
-    private function popEnergyBar(color:Int, boardSize:Int) {
-        this.energyBarLF = new Bar(color, boardSize);
-        // this.energyBar.x = 260;
-        // this.energyBar.y = openfl.Lib.current.stage.stageHeight - this.energyBar.height;
+    private function popEnergyBar(color:Int)
+    {
+        this.energyBarLF = new Bar(color);
         this.addChild(this.energyBarLF);
 
         // if(Game.LAGFREE) {
@@ -576,34 +604,36 @@ class Game extends Sprite {
         //     this.energyBarLF.y = openfl.Lib.current.stage.stageHeight - this.energyBarLF.height;
         //     this.addChild(this.energyBarLF);
         // }
-
-
     }
 
-    private function rankingRefresh(ranking:Array<Int>) {
+    private function rankingRefresh(ranking:Array<Int>)
+    {
         var count = 0;
-        for(_id in ranking) {
-            var player:Player = this.players.get(Std.string(_id));
-            player.moveText(count * Player.HEIGHT);
+        for(_id in ranking)
+        {
+            var rank:Rank = this.ranks.get(_id);
+            rank.moveText(count);
             count += 1;
         }
     }
 
-    var a:Array<Sprite> = new Array();
-
-    private function createDots(SIZE:Int) {
+    private function createDots(SIZE:Int)
+    {
+        // BOARD DOTS
         var xArray:Array<Array<Dot>> = new Array();
-        for(x in 0...SIZE) {
+        for(x in 0...SIZE)
+        {
             var yArray:Array<Dot> = new Array();
             xArray.push(yArray);
-            for(y in 0...SIZE) {
+            for(y in 0...SIZE)
+            {
                 var dot:Dot = new Dot(x, y);
                 this.addChild(dot);
                 yArray.push(dot);
             }
         }
 
-        // CONTOUR
+        // CONTOUR IMAGES
         var cornerTopLeft = new TileBMP(-1, -1, "corner.png", Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y);
         this.addChild(cornerTopLeft);
 
@@ -620,6 +650,7 @@ class Game extends Sprite {
         cornerBottomRight.flipY();
         this.addChild(cornerBottomRight);
 
+        // CONTOUR SHAPES
         for(x in 0...SIZE) {
             this.addChild(new Tile(x, -1, 0xd95b43, Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y));
             this.addChild(new Tile(x, SIZE, 0xd95b43, Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y));
@@ -633,15 +664,20 @@ class Game extends Sprite {
         return xArray;
     }
 
-    private function onMouseOver(event:MouseEvent) {
-        trace("mouseover");
-        for(posx in 0...this.dots.length) {
-            for(posy in 0...this.dots[posx].length) {
+    private function onMouseOver(event:MouseEvent)
+    {
+        for(posx in 0...this.dots.length)
+        {
+            for(posy in 0...this.dots[posx].length)
+            {
                 var dot = this.dots[posx][posy];
-                if(event.target == dot){
+
+                if(event.target == dot)
+                {
 
                     // if(Game.LAGFREE) {
-                        if(dot.id != this.id && this.LFenergy > CST.DOT_COST) {
+                        if(dot.id != this.id && this.LFenergy > CST.DOT_COST)
+                        {
                             // this.LFenergy -= CST.DOT_COST;
                             dot.focusDot(this.color);
                             socket.writeByte(CST.DOT_COLOR);
@@ -661,13 +697,18 @@ class Game extends Sprite {
         }
     }
 
-    private function onMouseDown(event:MouseEvent) {
-        // trace(event);
-        for(posx in 0...this.dots.length) {
-            for(posy in 0...this.dots[posx].length) {
+    private function onMouseDown(event:MouseEvent)
+    {
+        for(posx in 0...this.dots.length)
+        {
+            for(posy in 0...this.dots[posx].length)
+            {
                 var dot = this.dots[posx][posy];
-                if(event.target == dot){  // PLEASE...
-                    if(dot.id == this.id) {
+
+                if(event.target == dot)  // PLEASE...
+                {
+                    if(dot.id == this.id)
+                    {
                         socket.writeByte(CST.TOWER);
                         socket.writeByte(posx);
                         socket.writeByte(posy);
@@ -677,13 +718,18 @@ class Game extends Sprite {
         }
     }
 
-    private function onRightMouseDown(event:MouseEvent) {
-        trace(event);
-        for(posx in 0...this.dots.length) {
-            for(posy in 0...this.dots[posx].length) {
+    private function onRightMouseDown(event:MouseEvent)
+    {
+        for(posx in 0...this.dots.length)
+        {
+            for(posy in 0...this.dots[posx].length)
+            {
                 var dot = this.dots[posx][posy];
-                if(event.target == dot){  // PLEASE...
-                    if(dot.id == this.id) {
+
+                if(event.target == dot)  // PLEASE...
+                {
+                    if(dot.id == this.id)
+                    {
                         socket.writeByte(CST.PILLAR);
                         socket.writeByte(posx);
                         socket.writeByte(posy);
@@ -693,20 +739,26 @@ class Game extends Sprite {
         }
     }
 
-    private function onEnterFrame(event:Event):Void {
+    private function onEnterFrame(event:Event):Void
+    {
         var elapsedTime:Float = Lib.getTimer() - this.startTime;
 
-        if (elapsedTime > 1000 / 10) {
+        if (elapsedTime > 1000 / 10)
+        {
             // if(Game.LAGFREE) {
-                if(this.id != 0) {
+                if(this.id != 0)
+                {
                     this.LFenergy += CST.DOT_REGEN * elapsedTime / 1000;
-                    if(this.LFenergy > this.energyMax) {
+                    if(this.LFenergy > this.energyMax)
+                    {
                         this.LFenergy = this.energyMax;
                     }
 
-                    else if(this.LFenergy < 0) {
+                    else if(this.LFenergy < 0)
+                    {
                         this.LFenergy = 0;
                     }
+
                     this.energyBarLF.update(Std.int(this.LFenergy), Std.int(this.energyMax));
                 }
             // }
@@ -716,93 +768,113 @@ class Game extends Sprite {
         }
     }
 
-    private function dataHandler(event:ProgressEvent) {
+    private function dataHandler(event:ProgressEvent)
+    {
         while(socket.bytesAvailable > 0) {
             var msgType = socket.readUnsignedByte();
 
-            if(msgType == CST.CONNECTION) {
-                var _id = socket.readUnsignedByte();
-                trace("bytesavailable " + socket.bytesAvailable);
-                var nick = socket.readUTF();
-                trace("bytesavailable " + socket.bytesAvailable);
-                var color = socket.readInt();
-                var me = socket.readUnsignedByte();
-                trace("color is " + color);
+            if(msgType == CST.CONNECTION)
+            {
+                var _id:Int = socket.readUnsignedByte();
+                var nick:String = socket.readUTF();
+                var color:Int = socket.readInt();
+                var me:Int = socket.readUnsignedByte();
 
                 var player = new Player(_id, nick, color);
-                this.addChild(player);
+                this.players.set(_id, player);
+                var rank = new Rank(_id, nick, color);
+                this.ranks.set(_id, rank);
+                this.addChild(rank);
 
                 if(me == 1) {
                     this.id = _id;
-                    this.myPlayer = player;
                     this.color = color;
+
+                    popEnergyBar(color);
+
+                    // SPAWN CHAT
+                    this.chat = new Chat(this.socket, this.color);
+                    this.addChild(this.chat);
                 }
-                this.players.set(Std.string(_id), player);
 
-                // SPAWN CHAT
-                this.chat = new Chat(this.socket, this.color);
-                this.addChild(this.chat);
-
-                trace("connection from " + _id);
                 trace("connection from " + nick);
                 trace("Is it me ?" + me);
             }
 
-            if(msgType == CST.DISCONNECTION) {
+            if(msgType == CST.DISCONNECTION)
+            {
                 var _id = socket.readUnsignedByte();
                 for(player in this.players) {
                 }
-                var player = this.players.get(Std.string(_id));
+                var rank = this.ranks.get(_id);
 
                 // Remove references
-                this.removeChild(player);
-                this.players.remove(Std.string(_id));
+                this.removeChild(rank);
+                this.ranks.remove(_id);
+                this.players.remove(_id);
             }
 
-            if(msgType == CST.TOWER) {
+            if(msgType == CST.TOWER)
+            {
                 var flag = socket.readUnsignedByte();
-                var posx = socket.readUnsignedByte();
-                var posy = socket.readUnsignedByte();
-                if(flag == 1) {
-                    this.dots[posx][posy].createTower();
+                var tileX = socket.readUnsignedByte();
+                var tileY = socket.readUnsignedByte();
+
+                if(flag == 1)
+                {
+                    this.dots[tileX][tileY].createTower();
                     this.vlam.play();
                 }
-                else {
-                    this.dots[posx][posy].destroyTower();
+                else
+                {
+                    this.dots[tileX][tileY].destroyTower();
                 }
             }
 
-            if(msgType == CST.PILLAR) {
+            if(msgType == CST.PILLAR)
+            {
                 var flag = socket.readUnsignedByte();
                 var ownerId = socket.readUnsignedByte();
-                var player = this.players.get(Std.string(ownerId));
-                var posx = socket.readUnsignedByte();
-                var posy = socket.readUnsignedByte();
-                if(flag == 1) {
-                    var pillar = new Pillar(posx, posy, player.color);
-                    addChild(pillar);
-                    pillars.push(pillar);
-                    // this.dots[posx][posy].createPillar();
-                    // this.vlam.play();
+                var player = this.players.get(ownerId);
+                var tileX = socket.readUnsignedByte();
+                var tileY = socket.readUnsignedByte();
+
+                if(flag == 1)
+                {
+                    var newPillar = new Pillar(ownerId, tileX, tileY, player.color);
+                    pillars.push(newPillar);
+                    addChild(newPillar);
                 }
-                // else {
-                //     this.dots[posx][posy].destroyTower();
-                // }
+                else
+                {
+                    var i = pillars.length;
+                    while (i-- > 0)
+                    {
+                        if(pillars[i].ownerId == ownerId)
+                        {
+                            removeChild(pillars[i]);
+                            pillars.remove(pillars[i]);
+                        }
+                    }
+                }
             }
 
-            if(msgType == CST.PILLAR_ATTACK) {
+            if(msgType == CST.PILLAR_ATTACK)
+            {
                 var ownerId = socket.readUnsignedByte();
-                var player = this.players.get(Std.string(ownerId));
-                var pillarX = socket.readUnsignedByte();
-                var pillarY = socket.readUnsignedByte();
-                var attackX = socket.readUnsignedByte();
-                var attackY = socket.readUnsignedByte();
-                Pillar.attack(player.color, pillarX, pillarY, attackX, attackY);
+                var player = this.players.get(ownerId);
+                var sourceX = socket.readUnsignedByte();
+                var sourceY = socket.readUnsignedByte();
+                var targetX = socket.readUnsignedByte();
+                var targetY = socket.readUnsignedByte();
+                Pillar.attack(player.color, sourceX, sourceY, targetX, targetY);
             }
 
-            if(msgType == CST.UPDATE) {
+            if(msgType == CST.UPDATE)
+            {
                 var energy = socket.readUnsignedByte();
                 this.energyMax = socket.readUnsignedByte();
+
                 this.energy = energy;
                 this.LFenergy = energy;
                 this.energyBarLF.update(energy, this.energyMax);
@@ -810,15 +882,19 @@ class Game extends Sprite {
                 if(this.energy > 25) energyBarLF.unlockSkill(1);
             }
 
-            if(msgType == CST.MAP) {
+            if(msgType == CST.MAP)
+            {
                 var SIZE:Int = socket.readUnsignedByte();
                 this.dots = createDots(SIZE);
 
                 for(x in 0...SIZE) {
-                    for(y in 0...SIZE) {
+                    for(y in 0...SIZE)
+                    {
                         var _id = socket.readUnsignedByte();
-                        if(_id != 0) {
-                            var player = this.players.get(Std.string(_id));
+
+                        if(_id != 0)
+                        {
+                            var player = this.players.get(_id);
                             var color = player.color;
                             this.dots[x][y].changeColor(_id, color);
                         }
@@ -832,68 +908,76 @@ class Game extends Sprite {
                 Lib.current.stage.addEventListener(MouseEvent.MOUSE_OVER, onMouseOver);
                 Lib.current.stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
                 Lib.current.stage.addEventListener(MouseEvent.RIGHT_MOUSE_DOWN, onRightMouseDown);
-
-                // AWFUL BUT LET'S JUST PROTOTYPE FOR NOW
-                if(this.id != 0) // aka me aka first connection, differentiate from new map from win
-                {
-                    popEnergyBar(color, SIZE);
-                }
             }
 
-            if(msgType == CST.DOT_COLOR) {
-                trace("dot_color");
+            if(msgType == CST.DOT_COLOR)
+            {
                 var _id = socket.readUnsignedByte();
                 var posx = socket.readUnsignedByte();
                 var posy = socket.readUnsignedByte();
-                if(_id != 0) {
-                    var player = this.players.get(Std.string(_id));
+
+                // IF PLAYER PLAY
+                if(_id != 0)
+                {
+                    var player = this.players.get(_id);
                     var color:Int = player.color;
                     this.dots[posx][posy].changeColor(_id, color);
-                    if(_id == this.id){
+
+                    // IF MYSELF
+                    if(_id == this.id)
+                    {
                         this.tick.play();
                     }
                 }
+                // IF BACK TO DEFAULT DOT
                 else {
                     this.dots[posx][posy].changeColor(_id, Dot.DEFAULT_COLOR);
                 }
             }
 
-            if(msgType == CST.MESSAGE) {
+            if(msgType == CST.MESSAGE)
+            {
                 var _id = socket.readUnsignedByte();
-                trace("message from " + _id);
-                var chatMsg = socket.readUTF().toUpperCase ();
+                var chatMsg = socket.readUTF().toUpperCase();
+                trace("Message from " + _id);
 
-                var nick = this.players.get(Std.string(_id)).nick;
-                var color = this.players.get(Std.string(_id)).color;
+                var nick = this.players.get(_id).nick;
+                var color = this.players.get(_id).color;
 
                 this.chat.message(nick, chatMsg, color);
             }
 
-            if(msgType == CST.WIN) {
+            if(msgType == CST.WIN)
+            {
                 var _id = socket.readUnsignedByte();
-                var nick = this.players.get(Std.string(_id)).nick;
+                var nick = this.players.get(_id).nick;
                 popWin(nick);
             }
 
-            if(msgType == CST.RANKING) {
+            // CLIENT-SIDE ?
+            if(msgType == CST.RANKING)
+            {
                 var rankNb = socket.readUnsignedByte();
                 var ranking = new Array();
-                for(i in 0...rankNb) {
+
+                for(i in 0...rankNb)
+                {
                     var _id = socket.readUnsignedByte();
                     ranking.push(_id);
                     this.rankingRefresh(ranking);
                 }
             }
 
-            if(msgType == CST.FULL) {
+            if(msgType == CST.FULL)
+            {
                 trace("SERVER FULL");
             }
 
         }
     }
 
-    private function onConnect(event:Event) {
-
+    private function onConnect(event:Event)
+    {
         socket.writeByte(CST.CONNECTION);
         socket.writeUTF(this.nick);
     }
@@ -918,22 +1002,15 @@ class LD23 extends Sprite {
 
     public function new() {
         super();
-        this.intro = new Bitmap(Assets.getBitmapData("assets/intro.png"));
         popLogin();
     }
 
     private function popLogin() {
-        var bg = new Bitmap(Assets.getBitmapData("assets/login.png"));
-        this.addChild(bg);
-        // var font = Assets.getFont("assets/FFFFT___.TTF");
-        var font = Assets.getFont(Game.FONT);
-        var format = new TextFormat (font.fontName); 
-        format.size = 10;
-        this.login = new TextField();
-        this.login.defaultTextFormat = format;
-        this.login.embedFonts = true;
+        var background = new Bitmap(Assets.getBitmapData("assets/login.png"));
+        this.addChild(background);
+
+        this.login = Tool.getTextField(0, 0, "Guest", 10);
         this.login.type = openfl.text.TextFieldType.INPUT;
-        this.login.text = "Guest";
         this.login.maxChars = 8;
         this.login.height = 20;
         this.login.border = true;
@@ -948,7 +1025,8 @@ class LD23 extends Sprite {
         this.addEventListener(MouseEvent.CLICK, onMouseClick);
     }
 
-    private function popGame() {
+    private function popGame()
+    {
         this.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
         Lib.current.removeChild(this);
         Lib.current.addChild(new Game(this.login.text));
@@ -960,7 +1038,8 @@ class LD23 extends Sprite {
     }
 
     private function onKeyDown(event:KeyboardEvent) {
-        switch(event.keyCode){
+        switch(event.keyCode)
+        {
             case Keyboard.ENTER:
                 popGame();
         }
