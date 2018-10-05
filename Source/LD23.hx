@@ -21,6 +21,7 @@ import openfl.utils.Endian;
 import Std;
 
 import motion.Actuate;
+import motion.easing.Cubic;
 
 import Common.CST;
 
@@ -390,8 +391,12 @@ class Bar extends Sprite
     private var content:Sprite;
     private var line:Sprite;
     private var realWidth:Int;
-    private var skill_cross:Bitmap;
-    private var skill_tower:Bitmap;
+    private var skillCross:Sprite;
+    private var skillTower:Sprite;
+    var skill1Unlocked = false;
+    var skill2Unlocked = false;
+    private var skill1Available = false;
+    private var skill2Available = false;
 
     public function new(color:Int) {
         super();
@@ -464,25 +469,31 @@ class Bar extends Sprite
         }
 
         // PLACE SKILLS
-        this.skill_cross = new Bitmap(Assets.getBitmapData("assets/cross.png"));
-        skill_cross.x = xTower - skill_cross.width / 2;
-        skill_cross.y = yTower + 38;
-        this.addChild(skill_cross);
+        function makeSkillIcon(skillNum:Int, bmpPath:String):Sprite
+        {
+            var sprite = new Sprite();
+            sprite.x = skillNum * xTower;
+            sprite.y = yTower + 55;
 
-        this.skill_tower = new Bitmap(Assets.getBitmapData("assets/tower.png"));
-        skill_tower.x = 2 * xTower - skill_tower.width / 2;
-        skill_tower.y = yTower + 38;
-        this.addChild(skill_tower);
+            var bmp = new Bitmap(Assets.getBitmapData(bmpPath));
+            bmp.x -= bmp.width / 2;
+            bmp.y -= bmp.height / 2;
+
+            sprite.addChild(bmp);
+            this.addChild(sprite);
+
+            return sprite;
+        }
+
+        this.skillCross = makeSkillIcon(1, "assets/cross.png");
+        this.skillTower = makeSkillIcon(2, "assets/tower.png");
     }
-
-    var skill1Unlocked = false;
-    var skill2Unlocked = false;
 
     public function unlockSkill(skillNum:Int)
     {
         if(skillNum == 1 && !skill1Unlocked)
         {
-            skill_cross.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64, 64);
+            skillCross.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64, 64);
             skill1Unlocked = true;
         }
     }
@@ -491,6 +502,29 @@ class Bar extends Sprite
     {
         this.content.scaleX = energy / 100;
         this.line.x = this.realWidth / 100 * energyMax;
+
+        if(energyMax > 25)
+            unlockSkill(1);
+        
+        if(energy > 25)
+        {
+            if(!skill1Available)
+            {
+                Actuate.stop(skillCross);
+                Actuate.tween(skillCross, 0.5, {scaleX: 1.2, scaleY: 1.2}).repeat().reflect().ease(Cubic.easeInOut);
+                skill1Available = true;
+            }
+        }
+
+        if(energy < 25)
+        {
+            if(skill1Available)
+            {
+                Actuate.stop(skillCross);
+                Actuate.tween(skillCross, 0.5, {scaleX: 1, scaleY: 1}).ease(Cubic.easeInOut);
+                skill1Available = false;
+            }
+        }
     }
 }
 
@@ -880,8 +914,6 @@ class Game extends Sprite
                 this.energy = energy;
                 this.LFenergy = energy;
                 this.energyBarLF.update(energy, this.energyMax);
-
-                if(this.energy > 25) energyBarLF.unlockSkill(1);
             }
 
             if(msgType == CST.MAP)

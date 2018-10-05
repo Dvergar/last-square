@@ -21,7 +21,6 @@ from serverhelpers import *
 log.startLogging(sys.stdout)
 
 
-
 def log(msg):
     localtime = time.localtime()
     now = time.strftime("<%H:%M:%S>", localtime)
