@@ -260,6 +260,7 @@ class Pillar extends Sprite
     public static function attack(color:Int, sourceTileX:Int, sourceTileY:Int,
                                             targetTileX:Int, targetTileY:Int)
     {
+        trace("Attack");
         var sourceX = Tool.ToPixelX(sourceTileX) + Dot.SIZE / 2;
         var sourceY = Tool.ToPixelY(sourceTileY) + Dot.SIZE / 2;
         var targetX = Tool.ToPixelX(targetTileX) + Dot.SIZE / 2;
@@ -861,6 +862,7 @@ class Game extends Sprite
 
             if(msgType == CST.PILLAR_ATTACK)
             {
+                trace("pillarattack");
                 var ownerId = socket.readUnsignedByte();
                 var player = this.players.get(ownerId);
                 var sourceX = socket.readUnsignedByte();

@@ -24,6 +24,5 @@ class CST
 
 
 class Common {
-    public static function main() {
-    }
+    public static function main() {}
 }

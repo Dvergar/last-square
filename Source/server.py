@@ -13,14 +13,23 @@ from twisted.python import log
 
 from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketServerProtocol
 import randomcolor
-# factory = WebSocketServerFactory()
-# factory.protocol = MyServerProtocol
 
-import serverhelpers
-from common import *
+from common import CST
+from serverhelpers import *
 
 
 log.startLogging(sys.stdout)
+
+
+
+class Manager:
+    def __init__(self):
+        self.connections = {}
+
+    def broadcast(self, data:bytes):
+        print(data)
+        for connection in self.connections.values():
+            connection.send(data)
 
 
 def log(msg):
@@ -91,9 +100,10 @@ class BinaryStream:
 bs = BinaryStream()
 
 
-def broadcast(data:bytes):
-    for connection in Connection._registry.values():
-        connection.send(data)
+class ToolHx:
+    def broadcast_hx(mg, struct_parameters):
+        packed = struct.pack(*struct_parameters)
+        mg.broadcast(packed)
 
 
 def read_policy():
@@ -106,69 +116,11 @@ def read_policy():
 World = Dict[Tuple[int, int], int]
 
 
-class Pillar:
-    _registry:List[Pillar] = []
-    def __init__(self, x:int, y:int, world:World, owner:Connection) -> None:
-        self._registry.append(self)
-        self.owner = owner
-        self.world:World = world
-        self.x = x
-        self.y = y
-        self.checklist = [
-                        (-1, 0),
-                        (-1, 1),
-                        (0, 1),
-                        (1, 1),
-                        (0, 0),
-                        (1, 0),
-                        (1, -1),
-                        (0, -1),
-                        (-1, -1)
-                        ]
-
-    def attack(self):
-        angle = random.random() * 2 * math.pi
-        distance_max = 8
-        distance = random.randint(1, distance_max)
-        x_off = int(math.cos(angle) * distance)
-        y_off = int(math.sin(angle) * distance)
-        target_x = self.x + x_off
-        target_y = self.y + y_off
-
-        # TODO : force-search valid target
-        if not valid_position(target_x, target_y):
-            return;
-
-        for (dx, dy) in self.checklist:
-            x = self.x + x_off + dx
-            y = self.y + y_off + dy
-            if valid_position(x, y):
-                self.owner.push_dot(x, y)
-
-        broadcast(struct.pack("!6B", CST.PILLAR_ATTACK, self.owner.id, self.x, self.y, target_x, target_y))
-
-    def destroy(self):
-        log("Pillar destroy")
-        self._registry.remove(self)
-        self.owner.pillars.remove(self)
-        broadcast(struct.pack("!4B", CST.PILLAR, 0, self.x, self.y))
-
-
-def valid_position(x, y):
-    if x < 0: return False
-    if y < 0: return False
-
-    if x >= CST.SIZE: return False
-    if y >= CST.SIZE: return False
-
-    return True
-
-
 class Tower:
     _registry:List[Tower] = []
 
     def __init__(self, x:int, y:int, world:World, owner:Connection) -> None:
-        self._registry.append(self)
+        Tower._registry.append(self)
         self.owner:Connection = owner
         self.world:World = world
         self.x, self.y = x, y
@@ -206,20 +158,23 @@ class Tower:
 
     def destroy(self):
         log("Tower destroy")
-        self._registry.remove(self)
+        Tower._registry.remove(self)
         self.owner.towers.remove(self)
-        broadcast(struct.pack("!4B", CST.TOWER, 0, self.x, self.y))
+        mg.broadcast(struct.pack("!4B", CST.TOWER, 0, self.x, self.y))
+
+
+
 
 
 class Connection(WebSocketServerProtocol):
-    _registry:Dict[int, Connection] = {}
+    # _registry:Dict[int, Connection] = {}
     _ids:List[int] = list(range(1, 255))
     energy = CST.ENERGY_DEFAULT
     dots = 0
 
     def __init__(self):
         super().__init__()
-
+        self.tosend = b''
         self.energy_max = 20 + self.dots * 0.2
         self.towers:List[Tower] = []
         self.pillars:List[Pillar] = []
@@ -253,7 +208,9 @@ class Connection(WebSocketServerProtocol):
 
             if msg_type == CST.CONNECTION:
                 # Here to prevent client receiving other clients datas before init
-                self._registry[self.id] = self
+                mg.connections[self.id] = self
+                # Manager.obj.conns.append(self.id)
+                print("Num connections", len(mg.connections.values()))
                 self.tosend = b''
 
                 # RANDOM COLOR
@@ -265,7 +222,7 @@ class Connection(WebSocketServerProtocol):
                 log("Connection from " + str(self.nick))
 
                 # send connected players data
-                for connection in Connection._registry.values():
+                for connection in mg.connections.values():
                     if connection.REALLY_connected:
                         if connection != self:
                             # Send players to me
@@ -303,7 +260,7 @@ class Connection(WebSocketServerProtocol):
                         xt = x + dx
                         yt = y + dy
 
-                        if valid_position(xt, yt):
+                        if Tool.valid_position(xt, yt):
                             if world[xt, yt] != self.id:
                                 buildable = False
                         else:
@@ -311,7 +268,7 @@ class Connection(WebSocketServerProtocol):
 
                     if buildable:
                         print("buildable")
-                        broadcast(struct.pack("!4B", CST.TOWER, 1, x, y))
+                        mg.broadcast(struct.pack("!4B", CST.TOWER, 1, x, y))
                         self.towers.append(Tower(x, y, world, self))
                         self.energy -= 25
 
@@ -323,7 +280,7 @@ class Connection(WebSocketServerProtocol):
                 buildable = True
                 world = self.factory.world
 
-                if valid_position(x, y):
+                if Tool.valid_position(x, y):
                     if world[x, y] != self.id:
                         buildable = False
                 else:
@@ -331,8 +288,8 @@ class Connection(WebSocketServerProtocol):
 
                 if buildable:
                     print("buildable")
-                    broadcast(struct.pack("!5B", CST.PILLAR, 1, self.id, x, y))
-                    self.pillars.append(Pillar(x, y, world, self))
+                    mg.broadcast(struct.pack("!5B", CST.PILLAR, 1, self.id, x, y))
+                    self.pillars.append(Pillar(mg, x, y, world, self))
 
 
             if msg_type == CST.MESSAGE:
@@ -340,7 +297,7 @@ class Connection(WebSocketServerProtocol):
                 log(self.nick + " > " + self.dec(chatmsg))
                 chatstruct = "!BBH" + str(len(chatmsg)) + "s"
 
-                broadcast(struct.pack(chatstruct, CST.MESSAGE, self.id,
+                mg.broadcast(struct.pack(chatstruct, CST.MESSAGE, self.id,
                                             len(chatmsg), chatmsg))
 
     def onConnect(self, request):
@@ -363,20 +320,20 @@ class Connection(WebSocketServerProtocol):
         for pillar in reversed(self.pillars):
             pillar.destroy()
 
-        if self in self._registry.values():
-            log("...from " + self.nick)
-            broadcast(struct.pack("!BB", CST.DISCONNECTION, self.id))
+        if self in mg.connections.values():
+            # log("...from " + self.nick)
+            mg.broadcast(struct.pack("!BB", CST.DISCONNECTION, self.id))
 
         self.disconnect()  # Here and not above !
 
         for (posx, posy), _id in self.factory.world.items():
             if _id == self.id:
                 self.factory.world[posx, posy] = 0
-                broadcast(struct.pack("!4B", CST.DOT_COLOR, 0, posx, posy))  # only client-side please
+                mg.broadcast(struct.pack("!4B", CST.DOT_COLOR, 0, posx, posy))  # only client-side please
 
     def reset(self):
         for tower in self.towers:
-            tower._registry.remove(tower)
+            Tower._registry.remove(tower)
 
         self.towers = []
         self.dots = 0
@@ -384,21 +341,21 @@ class Connection(WebSocketServerProtocol):
     def disconnect(self):
         self._ids.append(self.id)
 
-        if self in self._registry.values():
-            del self._registry[self.id]
+        if self in mg.connections.values():
+            del mg.connections[self.id]
 
     def push_dot(self, posx:int, posy:int):
         world = self.factory.world
 
         if (posx, posy) in world:
             old_owner_id = world[(posx, posy)]
-            if old_owner_id and old_owner_id in Connection._registry:
-                old_owner = Connection._registry[old_owner_id]
+            if old_owner_id and old_owner_id in mg.connections:
+                old_owner = mg.connections[old_owner_id]
                 old_owner.dots -= 1
             self.dots += 1
             
             world[(posx, posy)] = self.id
-            broadcast(struct.pack("!4B", CST.DOT_COLOR, self.id,
+            mg.broadcast(struct.pack("!4B", CST.DOT_COLOR, self.id,
                                                 posx, posy))
 
             return True
@@ -480,17 +437,17 @@ class GameServer(WebSocketServerFactory):
         return exp_world
 
     def restart(self):
-        for conn in Connection._registry.values():
+        for conn in mg.connections.values():
             conn.reset()
 
         self.gen_world()
         exp_world = self.get_world()
-        broadcast(get_map_struct(exp_world))
+        mg.broadcast(get_map_struct(exp_world))
 
     def active_players(self):
         count = 0
 
-        for player in Connection._registry.values():
+        for player in mg.connections.values():
             if player.dots:
                 count += 1
 
@@ -501,17 +458,17 @@ class GameServer(WebSocketServerFactory):
 
     def generate_ranking(self):
         # Also check end of the game
-        for player in Connection._registry.values():
+        for player in mg.connections.values():
             # if player.dots > CST.SIZE ** 2 / (0.8 * self.active_players()):
             if player.dots > CST.SIZE ** 2 / 0.8:
                 log("Game won by " + player.nick)
-                broadcast(struct.pack("!BB", CST.WIN, player.id))
+                mg.broadcast(struct.pack("!BB", CST.WIN, player.id))
                 self.restart()
                 break
 
         # WHY NOT CLIENT-SIDE ONLY ?
         ranking = {}
-        for _id in Connection._registry:
+        for _id in mg.connections:
             # count = self.world.values().count(_id)
             count = sum(value == _id for value in self.world.values())
             if count:
@@ -520,11 +477,11 @@ class GameServer(WebSocketServerFactory):
         ranking = sorted(ranking.items(), reverse=True)
         ranking = [_id for (count, _id) in ranking]
         rank_struct = "!BB" + str(len(ranking)) + "B"
-        
-        broadcast(struct.pack(rank_struct, CST.RANKING, len(ranking), *ranking))
+
+        mg.broadcast(struct.pack(rank_struct, CST.RANKING, len(ranking), *ranking))
 
     def game_loop(self):
-        for connection in Connection._registry.values():
+        for connection in mg.connections.values():
             connection.update()
 
         if time.time() - self.tower_time > 0.4:
@@ -540,6 +497,7 @@ class GameServer(WebSocketServerFactory):
 
 if __name__ == '__main__':
     # Game server
+    mg = Manager()
     game_server = GameServer(u"ws://127.0.0.1:9999")
     game_server.protocol = Connection
     reactor.listenTCP(9999, game_server)
