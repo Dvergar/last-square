@@ -38,8 +38,8 @@ class Manager
 @:pythonImport("server", "ToolHx")
 extern class ToolHx
 {
-    public static function broadcast_hx(manager:Dynamic, args:Array<Dynamic>):Void;
-    public static function debug_broadcast(manager:Dynamic):Void;
+    public static function broadcast_hx(manager:Manager, args:Array<Dynamic>):Void;
+    public static function debug_broadcast(manager:Manager):Void;
     public static function broadcast_pillar_attack_hx(f:String, c:Int, id:Int, x:Int, y:Int, tx:Int, ty:Int):Void;
 }
 
@@ -63,9 +63,9 @@ class Pillar
 	private var x:Int;
 	private var y:Int;
 	private var checklist:Array<Array<Int>>;
-	private var manager:Dynamic;
+	private var manager:Manager;
 
-	public function new(manager:Dynamic, x:Int, y:Int, world:Dynamic, owner:Connection)
+	public function new(manager:Manager, x:Int, y:Int, world:Dynamic, owner:Connection)
 	{
 		this.manager = manager;
 		_registry.push(this);
