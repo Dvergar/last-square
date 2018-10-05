@@ -93,11 +93,12 @@ class Tool:
 
 class Manager:
     _hx_class_name = "Manager"
-    __slots__ = ("connections",)
-    _hx_fields = ["connections"]
+    __slots__ = ("connections", "world")
+    _hx_fields = ["connections", "world"]
     _hx_methods = ["broadcast"]
 
     def __init__(self):
+        self.world = dict()
         self.connections = dict()
 
     def broadcast(self,data):
@@ -110,8 +111,8 @@ class Manager:
 
 class Pillar:
     _hx_class_name = "Pillar"
-    __slots__ = ("owner", "world", "x", "y", "checklist", "manager")
-    _hx_fields = ["owner", "world", "x", "y", "checklist", "manager"]
+    __slots__ = ("manager", "owner", "world", "x", "y", "checklist")
+    _hx_fields = ["manager", "owner", "world", "x", "y", "checklist"]
     _hx_methods = ["attack", "destroy"]
     _hx_statics = ["_registry"]
 
@@ -121,9 +122,10 @@ class Pillar:
         self.x = None
         self.world = None
         self.owner = None
-        self.manager = manager
+        self.manager = None
         _this = Pillar._registry
         _this.append(self)
+        self.manager = manager
         self.owner = owner
         self.world = world
         self.x = x

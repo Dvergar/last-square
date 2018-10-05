@@ -103,16 +103,15 @@ def read_policy():
         return policy
 
 
-World = Dict[Tuple[int, int], int]
+# World = Dict[Tuple[int, int], int]
 
 
 class Tower:
     _registry:List[Tower] = []
 
-    def __init__(self, x:int, y:int, world:World, owner:Connection) -> None:
+    def __init__(self, x:int, y:int, owner:Connection) -> None:
         Tower._registry.append(self)
         self.owner:Connection = owner
-        self.world:World = world
         self.x, self.y = x, y
         self.left = self.right = self.up = self.down = (x, y)
 
@@ -123,22 +122,22 @@ class Tower:
         self.down = (self.down[0], self.down[1] - 1)
         propagating = 4
 
-        if self.left in self.world:
+        if self.left in mg.world:
             self.owner.push_dot(*self.left)
         else:
             propagating -= 1
 
-        if self.right in self.world:
+        if self.right in mg.world:
             self.owner.push_dot(*self.right)
         else:
             propagating -= 1
 
-        if self.up in self.world:
+        if self.up in mg.world:
             self.owner.push_dot(*self.up)
         else:
             propagating -= 1
 
-        if self.down in self.world:
+        if self.down in mg.world:
             self.owner.push_dot(*self.down)
         else:
             propagating -= 1
@@ -157,7 +156,6 @@ class Tower:
 
 
 class Connection(WebSocketServerProtocol):
-    # _registry:Dict[int, Connection] = {}
     _ids:List[int] = list(range(1, 255))
     energy = CST.ENERGY_DEFAULT
     dots = 0
@@ -244,14 +242,13 @@ class Connection(WebSocketServerProtocol):
 
                 if self.energy > 25:
                     buildable = True
-                    world = self.factory.world
 
                     for (dx, dy) in self.checklist:
                         xt = x + dx
                         yt = y + dy
 
                         if Tool.valid_position(xt, yt):
-                            if world[xt, yt] != self.id:
+                            if mg.world[xt, yt] != self.id:
                                 buildable = False
                         else:
                             buildable = False
@@ -259,7 +256,7 @@ class Connection(WebSocketServerProtocol):
                     if buildable:
                         print("buildable")
                         mg.broadcast(struct.pack("!4B", CST.TOWER, 1, x, y))
-                        self.towers.append(Tower(x, y, world, self))
+                        self.towers.append(Tower(x, y, mg.world, self))
                         self.energy -= 25
 
 
@@ -268,10 +265,9 @@ class Connection(WebSocketServerProtocol):
                 x, y = int(bs.read_byte()), int(bs.read_byte())
                 # if self.energy_max // CST.SECTOR_COST > 2:
                 buildable = True
-                world = self.factory.world
 
                 if Tool.valid_position(x, y):
-                    if world[x, y] != self.id:
+                    if mg.world[x, y] != self.id:
                         buildable = False
                 else:
                     buildable = False
@@ -279,7 +275,7 @@ class Connection(WebSocketServerProtocol):
                 if buildable:
                     print("buildable")
                     mg.broadcast(struct.pack("!5B", CST.PILLAR, 1, self.id, x, y))
-                    self.pillars.append(Pillar(mg, x, y, world, self))
+                    self.pillars.append(Pillar(mg, x, y, mg.world, self))
 
 
             if msg_type == CST.MESSAGE:
@@ -316,9 +312,9 @@ class Connection(WebSocketServerProtocol):
 
         self.disconnect()  # Here and not above !
 
-        for (posx, posy), _id in self.factory.world.items():
+        for (posx, posy), _id in mg.world.items():
             if _id == self.id:
-                self.factory.world[posx, posy] = 0
+                mg.world[posx, posy] = 0
                 mg.broadcast(struct.pack("!4B", CST.DOT_COLOR, 0, posx, posy))  # only client-side please
 
     def reset(self):
@@ -335,16 +331,15 @@ class Connection(WebSocketServerProtocol):
             del mg.connections[self.id]
 
     def push_dot(self, posx:int, posy:int):
-        world = self.factory.world
 
-        if (posx, posy) in world:
-            old_owner_id = world[(posx, posy)]
+        if (posx, posy) in mg.world:
+            old_owner_id = mg.world[(posx, posy)]
             if old_owner_id and old_owner_id in mg.connections:
                 old_owner = mg.connections[old_owner_id]
                 old_owner.dots -= 1
             self.dots += 1
             
-            world[(posx, posy)] = self.id
+            mg.world[(posx, posy)] = self.id
             mg.broadcast(struct.pack("!4B", CST.DOT_COLOR, self.id,
                                                 posx, posy))
 
@@ -394,9 +389,7 @@ def get_map_struct(world):
 
 
 class GameServer(WebSocketServerFactory):
-    # protocol = Connection
     game_running = False
-    world:World = {}
 
     def __init__(self, uri):
         WebSocketServerFactory.__init__(self, uri)
@@ -415,14 +408,14 @@ class GameServer(WebSocketServerFactory):
     def gen_world(self):
         for x in range(0, CST.SIZE):
             for y in range(0, CST.SIZE):
-                self.world[(x, y)] = 0
+                mg.world[(x, y)] = 0
 
     def get_world(self):
         exp_world = []
 
         for x in range(0, CST.SIZE):
             for y in range(0, CST.SIZE):
-                exp_world.append(self.world[(x, y)])
+                exp_world.append(mg.world[(x, y)])
 
         return exp_world
 
@@ -459,8 +452,7 @@ class GameServer(WebSocketServerFactory):
         # WHY NOT CLIENT-SIDE ONLY ?
         ranking = {}
         for _id in mg.connections:
-            # count = self.world.values().count(_id)
-            count = sum(value == _id for value in self.world.values())
+            count = sum(value == _id for value in mg.world.values())
             if count:
                 ranking[count] = _id
 

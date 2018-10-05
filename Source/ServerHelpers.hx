@@ -1,3 +1,6 @@
+import python.Dict;
+import python.Tuple;
+
 import Common;
 
 
@@ -23,7 +26,8 @@ class Tool
 
 class Manager
 {
-	public var connections:python.Dict<Int, Connection> = new python.Dict();
+	public var connections:Dict<Int, Connection> = new Dict();
+	public var world:Dict<Tuple<Int>, Int> = new Dict();
 
     function new() {}
 
@@ -55,20 +59,98 @@ extern class Connection
 }
 
 
+
+
+// class Tower
+// {
+// 	public static var _registry:Array<Tower> = new Array();
+// 	private var manager:Manager;
+// 	private var owner:Connection;
+// 	private var world:Dynamic;
+// 	private var x:Int;
+// 	private var y:Int;
+// 	private var left:Array<Int>;
+// 	private var right:Array<Int>;
+// 	private var up:Array<Int>;
+// 	private var down:Array<Int>;
+
+// 	public function new(manager:Manager, x:Int, y:Int, world:Dynamic, owner:Connection)
+// 	{
+// 		_registry.push(this);
+// 		this.manager = manager;
+// 		this.owner = owner;
+// 		this.world = world;
+// 		this.x = x;
+// 		this.y = y;
+// 		this.left = this.right = this.up = this.down = [x, y];
+// 	}
+
+// 	public function propagate()
+// 	{
+//         this.left = (this.left[0] - 1, this.left[1]);
+//         this.right = (this.right[0] + 1, this.right[1]);
+//         this.up = (this.up[0], this.up[1] + 1);
+//         this.down = (this.down[0], this.down[1] - 1);
+//         var propagating = 4;
+
+//         if(this.left in this.world)
+//         {
+//             this.owner.push_dot(this.left[0], this.left[1]);
+//         }
+//         else
+//         {
+//             propagating -= 1
+//         }
+
+//         if(this.right in this.world)
+//         {
+//             this.owner.push_dot(this.right[0], this.right[1]);
+//         }
+//         else
+//         {
+//             propagating -= 1
+//         }
+
+//         if(this.up in this.world)
+//         {
+//             this.owner.push_dot(this.up[0], this.up[1]);
+//         }
+//         else
+//         {
+//             propagating -= 1
+//         }
+
+//         if(this.down in this.world)
+//         {
+//             this.owner.push_dot(this.down[0], this.down[1]);
+//         }
+//         else
+//         {
+//             propagating -= 1
+//         }
+
+//         if not propagating:
+//             this.destroy()
+// 	}
+// }
+
+
+
+
 class Pillar
 {
 	public static var _registry:Array<Pillar> = new Array();
+	private var manager:Manager;
 	private var owner:Connection;
 	private var world:Dynamic;
 	private var x:Int;
 	private var y:Int;
 	private var checklist:Array<Array<Int>>;
-	private var manager:Manager;
 
 	public function new(manager:Manager, x:Int, y:Int, world:Dynamic, owner:Connection)
 	{
-		this.manager = manager;
 		_registry.push(this);
+		this.manager = manager;
 		this.owner = owner;
 		this.world = world;
 		this.x = x;
