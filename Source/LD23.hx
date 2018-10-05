@@ -388,17 +388,13 @@ class Dot extends Sprite
 
 class Bar extends Sprite
 {
-    private var content:Sprite;
-    private var line:Sprite;
-    private var realWidth:Int;
-    private var skillCross:Sprite;
-    private var skillTower:Sprite;
-    var skill1Unlocked = false;
-    var skill2Unlocked = false;
-    private var skill1Available = false;
-    private var skill2Available = false;
+    var content:Sprite;
+    var line:Sprite;
+    var realWidth:Int;
+    var skills:Array<SkillIcon> = new Array();
 
-    public function new(color:Int) {
+    public function new(color:Int)
+    {
         super();
         var WIDTH = CST.SIZE * Dot.SIZE;
         var HEIGHT = 2 * 16;
@@ -485,17 +481,10 @@ class Bar extends Sprite
             return sprite;
         }
 
-        this.skillCross = makeSkillIcon(1, "assets/cross.png");
-        this.skillTower = makeSkillIcon(2, "assets/tower.png");
-    }
+        this.skills = [new SkillIcon(1, "assets/cross.png", xTower, yTower),
+                       new SkillIcon(2, "assets/tower.png", xTower, yTower)];
 
-    public function unlockSkill(skillNum:Int)
-    {
-        if(skillNum == 1 && !skill1Unlocked)
-        {
-            skillCross.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64, 64);
-            skill1Unlocked = true;
-        }
+        for(skill in skills) addChild(skill);
     }
 
     public function update(energy:Int, energyMax:Int)
@@ -503,28 +492,62 @@ class Bar extends Sprite
         this.content.scaleX = energy / 100;
         this.line.x = this.realWidth / 100 * energyMax;
 
-        if(energyMax > 25)
-            unlockSkill(1);
-        
-        if(energy > 25)
+        for(skill in skills) skill.update(energy, energyMax);
+    }
+}
+
+
+class SkillIcon extends Sprite
+{
+    var num:Int;
+    var unlocked = false;
+    var available = false;
+
+    public function new(num:Int, bmpPath:String, x:Float, y:Float)
+    {
+        super();
+
+        this.num = num;
+        this.x = num * x;
+        this.y = y + 55;
+
+        var bmp = new Bitmap(Assets.getBitmapData(bmpPath));
+        bmp.x -= bmp.width / 2;
+        bmp.y -= bmp.height / 2;
+
+        this.addChild(bmp);
+    }
+
+    public function update(energy:Float, energyMax:Float)
+    {
+        if(energyMax > 25 * num)
         {
-            if(!skill1Available)
+            if(!unlocked)
             {
-                Actuate.stop(skillCross);
-                Actuate.tween(skillCross, 0.5, {scaleX: 1.2, scaleY: 1.2}).repeat().reflect().ease(Cubic.easeInOut);
-                skill1Available = true;
+                transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64, 64);
+                unlocked = true;
+            }
+        }
+        
+        if(energy > 25 * num)
+        {
+            if(!available)
+            {
+                Actuate.stop(this);
+                Actuate.tween(this, 0.5, {scaleX: 1.2, scaleY: 1.2}).repeat().reflect().ease(Cubic.easeInOut);
+                available = true;
             }
         }
 
         if(energy < 25)
         {
-            if(skill1Available)
+            if(available)
             {
-                Actuate.stop(skillCross);
-                Actuate.tween(skillCross, 0.5, {scaleX: 1, scaleY: 1}).ease(Cubic.easeInOut);
-                skill1Available = false;
+                Actuate.stop(this);
+                Actuate.tween(this, 0.5, {scaleX: 1, scaleY: 1}).ease(Cubic.easeInOut);
+                available = false;
             }
-        }
+        }   
     }
 }
 
