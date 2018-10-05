@@ -21,17 +21,17 @@ class Tool
 }
 
 
-// @:pythonImport("server", "Manager")
-// extern class Manager
-// {
-// 	public static var connections:Map<Int, Connection>;
-// 	public static function dummy():Void;
-// }
-
-
 class Manager
 {
-	public static var connections:Map<Int, Connection>;
+	public var connections:python.Dict<Int, Connection> = new python.Dict();
+
+    function new() {}
+
+    public function broadcast(data)
+    {
+        for(connection in this.connections.values())
+            connection.send(data);
+    }
 }
 
 
@@ -51,6 +51,7 @@ extern class Connection
 	public var id:Int;
     public var pillars:Array<Dynamic>;
     public function push_dot(x:Int, y:Int):Bool;
+    public function send(data:String):Void;
 }
 
 

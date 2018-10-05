@@ -93,9 +93,19 @@ class Tool:
 
 class Manager:
     _hx_class_name = "Manager"
-    __slots__ = ()
-    _hx_statics = ["connections"]
-    connections = None
+    __slots__ = ("connections",)
+    _hx_fields = ["connections"]
+    _hx_methods = ["broadcast"]
+
+    def __init__(self):
+        self.connections = dict()
+
+    def broadcast(self,data):
+        connection = python_HaxeIterator(iter(self.connections.values()))
+        while connection.hasNext():
+            connection1 = connection.next()
+            connection1.send(data)
+
 
 
 class Pillar:
@@ -161,16 +171,6 @@ class Pillar:
         python_internal_ArrayImpl.remove(self.owner.pillars,self)
         ToolHx.broadcast_hx(self.manager,["!4B", 10, 0, self.x, self.y])
 
-
-
-class haxe_IMap:
-    _hx_class_name = "haxe.IMap"
-    __slots__ = ()
-
-
-class haxe_ds_IntMap:
-    _hx_class_name = "haxe.ds.IntMap"
-    __slots__ = ()
 
 
 class python_Boot:

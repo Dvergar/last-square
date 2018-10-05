@@ -22,16 +22,6 @@ log.startLogging(sys.stdout)
 
 
 
-class Manager:
-    def __init__(self):
-        self.connections = {}
-
-    def broadcast(self, data:bytes):
-        print(data)
-        for connection in self.connections.values():
-            connection.send(data)
-
-
 def log(msg):
     localtime = time.localtime()
     now = time.strftime("<%H:%M:%S>", localtime)
