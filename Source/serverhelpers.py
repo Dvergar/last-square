@@ -109,6 +109,68 @@ class Manager:
 
 
 
+class Tower:
+    _hx_class_name = "Tower"
+    __slots__ = ("manager", "owner", "world", "x", "y", "left", "right", "up", "down")
+    _hx_fields = ["manager", "owner", "world", "x", "y", "left", "right", "up", "down"]
+    _hx_methods = ["propagate", "destroy"]
+    _hx_statics = ["_registry"]
+
+    def __init__(self,manager,x,y,world,owner):
+        self.down = None
+        self.up = None
+        self.right = None
+        self.left = None
+        self.y = None
+        self.x = None
+        self.world = None
+        self.owner = None
+        self.manager = None
+        _this = Tower._registry
+        _this.append(self)
+        self.manager = manager
+        self.owner = owner
+        self.world = world
+        self.x = x
+        self.y = y
+        self.left = (x, y)
+        self.right = (x, y)
+        self.up = (x, y)
+        self.down = (x, y)
+
+    def propagate(self):
+        self.left = ((self.left[0] - 1), self.left[1])
+        self.right = ((self.right[0] + 1), self.right[1])
+        self.up = (self.up[0], (self.up[1] + 1))
+        self.down = (self.down[0], (self.down[1] - 1))
+        propagating = 4
+        if (self.left in self.world):
+            self.owner.push_dot(self.left[0],self.left[1])
+        else:
+            propagating = (propagating - 1)
+        if (self.right in self.world):
+            self.owner.push_dot(self.right[0],self.right[1])
+        else:
+            propagating = (propagating - 1)
+        if (self.up in self.world):
+            self.owner.push_dot(self.up[0],self.up[1])
+        else:
+            propagating = (propagating - 1)
+        if (self.down in self.world):
+            self.owner.push_dot(self.down[0],self.down[1])
+        else:
+            propagating = (propagating - 1)
+        if (propagating <= 0):
+            self.destroy()
+
+    def destroy(self):
+        print("Tower destroy")
+        python_internal_ArrayImpl.remove(Tower._registry,self)
+        python_internal_ArrayImpl.remove(self.owner.towers,self)
+        ToolHx.broadcast_hx(self.manager,["!4B", 7, 0, self.x, self.y])
+
+
+
 class Pillar:
     _hx_class_name = "Pillar"
     __slots__ = ("manager", "owner", "world", "x", "y", "checklist")
@@ -871,6 +933,7 @@ CST.DOT_COST = 1
 CST.DOT_REGEN = 3
 CST.SECTOR_COST = 25
 CST.ENERGY_DEFAULT = 100
+Tower._registry = list()
 Pillar._registry = list()
 python_Boot.keywords = set(["and", "del", "from", "not", "with", "as", "elif", "global", "or", "yield", "assert", "else", "if", "pass", "None", "break", "except", "import", "raise", "True", "class", "exec", "in", "return", "False", "continue", "finally", "is", "try", "def", "for", "lambda", "while"])
 python_Boot.prefixLength = len("_hx_")

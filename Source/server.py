@@ -103,58 +103,6 @@ def read_policy():
         return policy
 
 
-# World = Dict[Tuple[int, int], int]
-
-
-class Tower:
-    _registry:List[Tower] = []
-
-    def __init__(self, x:int, y:int, owner:Connection) -> None:
-        Tower._registry.append(self)
-        self.owner:Connection = owner
-        self.x, self.y = x, y
-        self.left = self.right = self.up = self.down = (x, y)
-
-    def propagate(self):
-        self.left = (self.left[0] - 1, self.left[1])
-        self.right = (self.right[0] + 1, self.right[1])
-        self.up = (self.up[0], self.up[1] + 1)
-        self.down = (self.down[0], self.down[1] - 1)
-        propagating = 4
-
-        if self.left in mg.world:
-            self.owner.push_dot(*self.left)
-        else:
-            propagating -= 1
-
-        if self.right in mg.world:
-            self.owner.push_dot(*self.right)
-        else:
-            propagating -= 1
-
-        if self.up in mg.world:
-            self.owner.push_dot(*self.up)
-        else:
-            propagating -= 1
-
-        if self.down in mg.world:
-            self.owner.push_dot(*self.down)
-        else:
-            propagating -= 1
-
-        if not propagating:
-            self.destroy()
-
-    def destroy(self):
-        log("Tower destroy")
-        Tower._registry.remove(self)
-        self.owner.towers.remove(self)
-        mg.broadcast(struct.pack("!4B", CST.TOWER, 0, self.x, self.y))
-
-
-
-
-
 class Connection(WebSocketServerProtocol):
     _ids:List[int] = list(range(1, 255))
     energy = CST.ENERGY_DEFAULT
@@ -256,7 +204,7 @@ class Connection(WebSocketServerProtocol):
                     if buildable:
                         print("buildable")
                         mg.broadcast(struct.pack("!4B", CST.TOWER, 1, x, y))
-                        self.towers.append(Tower(x, y, mg.world, self))
+                        self.towers.append(Tower(mg, x, y, mg.world, self))
                         self.energy -= 25
 
 

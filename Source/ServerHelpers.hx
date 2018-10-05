@@ -24,10 +24,13 @@ class Tool
 }
 
 
+typedef World = Dict<Tuple2<Int, Int>, Int>;
+
+
 class Manager
 {
 	public var connections:Dict<Int, Connection> = new Dict();
-	public var world:Dict<Tuple<Int>, Int> = new Dict();
+	public var world:World = new Dict();
 
     function new() {}
 
@@ -54,86 +57,99 @@ extern class Connection
 	public var _ids:Array<Int>;
 	public var id:Int;
     public var pillars:Array<Dynamic>;
+    public var towers:Array<Dynamic>;
     public function push_dot(x:Int, y:Int):Bool;
     public function send(data:String):Void;
 }
 
 
+class Tower
+{
+	public static var _registry:Array<Tower> = new Array();
+	private var manager:Manager;
+	private var owner:Connection;
+	private var world:World;
+	private var x:Int;
+	private var y:Int;
+	private var left:Tuple2<Int, Int>;
+	private var right:Tuple2<Int, Int>;
+	private var up:Tuple2<Int, Int>;
+	private var down:Tuple2<Int, Int>;
+
+	public function new(manager:Manager, x:Int, y:Int, world:World, owner:Connection)
+	{
+		_registry.push(this);
+		this.manager = manager;
+		this.owner = owner;
+		this.world = world;
+		this.x = x;
+		this.y = y;
+		this.left = Tuple2.make(x, y);
+		this.right = Tuple2.make(x, y);
+		this.up = Tuple2.make(x, y);
+		this.down = Tuple2.make(x, y);
+	}
+
+	public function propagate()
+	{
+
+		// WHY A TUPLE THEN ?
+        this.left = Tuple2.make(left._1 - 1, left._2);
+        this.right = Tuple2.make(right._1 + 1, right._2);
+        this.up = Tuple2.make(up._1, up._2 + 1);
+        this.down = Tuple2.make(down._1, down._2 - 1);
 
 
-// class Tower
-// {
-// 	public static var _registry:Array<Tower> = new Array();
-// 	private var manager:Manager;
-// 	private var owner:Connection;
-// 	private var world:Dynamic;
-// 	private var x:Int;
-// 	private var y:Int;
-// 	private var left:Array<Int>;
-// 	private var right:Array<Int>;
-// 	private var up:Array<Int>;
-// 	private var down:Array<Int>;
+        var propagating = 4;
 
-// 	public function new(manager:Manager, x:Int, y:Int, world:Dynamic, owner:Connection)
-// 	{
-// 		_registry.push(this);
-// 		this.manager = manager;
-// 		this.owner = owner;
-// 		this.world = world;
-// 		this.x = x;
-// 		this.y = y;
-// 		this.left = this.right = this.up = this.down = [x, y];
-// 	}
+        if(this.world.hasKey(this.left))
+        {
+            this.owner.push_dot(this.left._1, this.left._2);
+        }
+        else
+        {
+            propagating -= 1;
+        }
 
-// 	public function propagate()
-// 	{
-//         this.left = (this.left[0] - 1, this.left[1]);
-//         this.right = (this.right[0] + 1, this.right[1]);
-//         this.up = (this.up[0], this.up[1] + 1);
-//         this.down = (this.down[0], this.down[1] - 1);
-//         var propagating = 4;
+        if(this.world.hasKey(this.right))
+        {
+            this.owner.push_dot(this.right._1, this.right._2);
+        }
+        else
+        {
+            propagating -= 1;
+        }
 
-//         if(this.left in this.world)
-//         {
-//             this.owner.push_dot(this.left[0], this.left[1]);
-//         }
-//         else
-//         {
-//             propagating -= 1
-//         }
+        if(this.world.hasKey(this.up))
+        {
+            this.owner.push_dot(this.up._1, this.up._2);
+        }
+        else
+        {
+            propagating -= 1;
+        }
 
-//         if(this.right in this.world)
-//         {
-//             this.owner.push_dot(this.right[0], this.right[1]);
-//         }
-//         else
-//         {
-//             propagating -= 1
-//         }
+        if(this.world.hasKey(this.down))
+        {
+            this.owner.push_dot(this.down._1, this.down._2);
+        }
+        else
+        {
+            propagating -= 1;
+        }
 
-//         if(this.up in this.world)
-//         {
-//             this.owner.push_dot(this.up[0], this.up[1]);
-//         }
-//         else
-//         {
-//             propagating -= 1
-//         }
+        if(propagating <= 0)
+            this.destroy();
+	}
 
-//         if(this.down in this.world)
-//         {
-//             this.owner.push_dot(this.down[0], this.down[1]);
-//         }
-//         else
-//         {
-//             propagating -= 1
-//         }
-
-//         if not propagating:
-//             this.destroy()
-// 	}
-// }
-
+	public function destroy()
+	{
+        trace("Tower destroy");
+        _registry.remove(this);
+        this.owner.towers.remove(this);
+        ToolHx.broadcast_hx(this.manager, ["!4B", CST.TOWER, 0, this.x, this.y]);
+	}
+}
 
 
 
