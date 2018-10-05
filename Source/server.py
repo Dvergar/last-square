@@ -204,7 +204,7 @@ class Connection(WebSocketServerProtocol):
                     if buildable:
                         print("buildable")
                         mg.broadcast(struct.pack("!4B", CST.TOWER, 1, x, y))
-                        self.towers.append(Tower(mg, x, y, mg.world, self))
+                        self.towers.append(Tower(mg, x, y, self))
                         self.energy -= 25
 
 
@@ -223,7 +223,7 @@ class Connection(WebSocketServerProtocol):
                 if buildable:
                     print("buildable")
                     mg.broadcast(struct.pack("!5B", CST.PILLAR, 1, self.id, x, y))
-                    self.pillars.append(Pillar(mg, x, y, mg.world, self))
+                    self.pillars.append(Pillar(mg, x, y, self))
 
 
             if msg_type == CST.MESSAGE:

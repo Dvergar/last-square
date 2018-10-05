@@ -68,7 +68,6 @@ class Tower
 	public static var _registry:Array<Tower> = new Array();
 	private var manager:Manager;
 	private var owner:Connection;
-	private var world:World;
 	private var x:Int;
 	private var y:Int;
 	private var left:Tuple2<Int, Int>;
@@ -76,12 +75,11 @@ class Tower
 	private var up:Tuple2<Int, Int>;
 	private var down:Tuple2<Int, Int>;
 
-	public function new(manager:Manager, x:Int, y:Int, world:World, owner:Connection)
+	public function new(manager:Manager, x:Int, y:Int, owner:Connection)
 	{
 		_registry.push(this);
 		this.manager = manager;
 		this.owner = owner;
-		this.world = world;
 		this.x = x;
 		this.y = y;
 		this.left = Tuple2.make(x, y);
@@ -102,7 +100,7 @@ class Tower
 
         var propagating = 4;
 
-        if(this.world.hasKey(this.left))
+        if(manager.world.hasKey(this.left))
         {
             this.owner.push_dot(this.left._1, this.left._2);
         }
@@ -111,7 +109,7 @@ class Tower
             propagating -= 1;
         }
 
-        if(this.world.hasKey(this.right))
+        if(manager.world.hasKey(this.right))
         {
             this.owner.push_dot(this.right._1, this.right._2);
         }
@@ -120,7 +118,7 @@ class Tower
             propagating -= 1;
         }
 
-        if(this.world.hasKey(this.up))
+        if(manager.world.hasKey(this.up))
         {
             this.owner.push_dot(this.up._1, this.up._2);
         }
@@ -129,7 +127,7 @@ class Tower
             propagating -= 1;
         }
 
-        if(this.world.hasKey(this.down))
+        if(manager.world.hasKey(this.down))
         {
             this.owner.push_dot(this.down._1, this.down._2);
         }
@@ -158,17 +156,15 @@ class Pillar
 	public static var _registry:Array<Pillar> = new Array();
 	private var manager:Manager;
 	private var owner:Connection;
-	private var world:Dynamic;
 	private var x:Int;
 	private var y:Int;
 	private var checklist:Array<Array<Int>>;
 
-	public function new(manager:Manager, x:Int, y:Int, world:Dynamic, owner:Connection)
+	public function new(manager:Manager, x:Int, y:Int, owner:Connection)
 	{
 		_registry.push(this);
 		this.manager = manager;
 		this.owner = owner;
-		this.world = world;
 		this.x = x;
 		this.y = y;
 		this.checklist = [

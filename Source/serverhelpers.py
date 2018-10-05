@@ -111,26 +111,24 @@ class Manager:
 
 class Tower:
     _hx_class_name = "Tower"
-    __slots__ = ("manager", "owner", "world", "x", "y", "left", "right", "up", "down")
-    _hx_fields = ["manager", "owner", "world", "x", "y", "left", "right", "up", "down"]
+    __slots__ = ("manager", "owner", "x", "y", "left", "right", "up", "down")
+    _hx_fields = ["manager", "owner", "x", "y", "left", "right", "up", "down"]
     _hx_methods = ["propagate", "destroy"]
     _hx_statics = ["_registry"]
 
-    def __init__(self,manager,x,y,world,owner):
+    def __init__(self,manager,x,y,owner):
         self.down = None
         self.up = None
         self.right = None
         self.left = None
         self.y = None
         self.x = None
-        self.world = None
         self.owner = None
         self.manager = None
         _this = Tower._registry
         _this.append(self)
         self.manager = manager
         self.owner = owner
-        self.world = world
         self.x = x
         self.y = y
         self.left = (x, y)
@@ -144,19 +142,19 @@ class Tower:
         self.up = (self.up[0], (self.up[1] + 1))
         self.down = (self.down[0], (self.down[1] - 1))
         propagating = 4
-        if (self.left in self.world):
+        if (self.left in self.manager.world):
             self.owner.push_dot(self.left[0],self.left[1])
         else:
             propagating = (propagating - 1)
-        if (self.right in self.world):
+        if (self.right in self.manager.world):
             self.owner.push_dot(self.right[0],self.right[1])
         else:
             propagating = (propagating - 1)
-        if (self.up in self.world):
+        if (self.up in self.manager.world):
             self.owner.push_dot(self.up[0],self.up[1])
         else:
             propagating = (propagating - 1)
-        if (self.down in self.world):
+        if (self.down in self.manager.world):
             self.owner.push_dot(self.down[0],self.down[1])
         else:
             propagating = (propagating - 1)
@@ -173,23 +171,21 @@ class Tower:
 
 class Pillar:
     _hx_class_name = "Pillar"
-    __slots__ = ("manager", "owner", "world", "x", "y", "checklist")
-    _hx_fields = ["manager", "owner", "world", "x", "y", "checklist"]
+    __slots__ = ("manager", "owner", "x", "y", "checklist")
+    _hx_fields = ["manager", "owner", "x", "y", "checklist"]
     _hx_methods = ["attack", "destroy"]
     _hx_statics = ["_registry"]
 
-    def __init__(self,manager,x,y,world,owner):
+    def __init__(self,manager,x,y,owner):
         self.checklist = None
         self.y = None
         self.x = None
-        self.world = None
         self.owner = None
         self.manager = None
         _this = Pillar._registry
         _this.append(self)
         self.manager = manager
         self.owner = owner
-        self.world = world
         self.x = x
         self.y = y
         self.checklist = [[-1, 0], [-1, 1], [0, 1], [1, 1], [0, 0], [1, 0], [1, -1], [0, -1], [-1, -1]]
