@@ -70,23 +70,38 @@ class TextBlock extends Sprite {
 }
 
 
-class Chat extends Sprite {
+class Chat extends Sprite
+{
     private var msg:openfl.text.TextField = new openfl.text.TextField();
     private var socket:Socket;
     private var messages:Array<TextBlock>;
 
     public static var HEIGHT:Int = 48;
     public static var DY:Int = 50;
+    public static var MARGIN_LEFT:Int = 10;
 
     public function new(socket, color:Int)
     {
         super();
         this.socket = socket;  // Has nothing to do here
         this.messages = new Array();
+        this.x = MARGIN_LEFT;
+        this.y -= 10;
+        var msgY = openfl.Lib.current.stage.stageHeight - DY;
+
+        // INPUT BOX COLOR
+        var borderSize = 2;
+        var inputBox = new Shape();
+        inputBox.graphics.clear();
+        inputBox.graphics.lineStyle(borderSize, color);
+        inputBox.graphics.beginFill(color, 0);
+        inputBox.graphics.drawRect(borderSize / 2, msgY + borderSize / 2,
+                                    Game.COLUMN_WIDTH - borderSize, HEIGHT - borderSize);
+        inputBox.graphics.endFill();
+        inputBox.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
 
         // TEXT
-        var msgY = openfl.Lib.current.stage.stageHeight - DY;
-        this.msg = Tool.getTextField(0, msgY, "HELLO !", 26);
+        this.msg = Tool.getTextField(10, msgY + 5, "HELLO !", 26);
         this.msg.type = openfl.text.TextFieldType.INPUT;
         this.msg.wordWrap = true;
         this.msg.maxChars = 15;
@@ -94,14 +109,6 @@ class Chat extends Sprite {
         this.msg.width = Game.COLUMN_WIDTH;
         this.msg.textColor = color;
         this.msg.transform.colorTransform = new openfl.geom.ColorTransform(0.6, 0.6, 0.6);
-
-        // INPUT BOX COLOR
-        var inputBox = new Shape();
-        inputBox.graphics.clear();
-        inputBox.graphics.beginFill(color);
-        inputBox.graphics.drawRect(msg.x, msg.y, msg.width, msg.height);
-        inputBox.graphics.endFill();
-        inputBox.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64, 64);
 
 
         this.addChild(inputBox);
@@ -168,6 +175,7 @@ class Rank extends Sprite
         this.id = id;
         this.nick = nick.toUpperCase();
         this.color = color;
+        this.x = Chat.MARGIN_LEFT;
         this.y = 0;
 
         // BACKGROUND
