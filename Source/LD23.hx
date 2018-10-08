@@ -26,7 +26,8 @@ import motion.easing.Cubic;
 import Common.CST;
 
 
-class TextBlock extends Sprite {
+class TextBlock extends Sprite
+{
     private var text:openfl.text.TextField;
     private var color:Int;
 
@@ -295,11 +296,23 @@ class Pillar extends Sprite
 
 class Tool
 {
+    static inline public inline function ToPixelX2(tileX:Int)
+        return tileX * Dot.SIZE;
+
+    static inline public function ToPixelY2(tileY:Int)
+        return tileY * Dot.SIZE;
+
     static inline public inline function ToPixelX(tileX:Int)
         return Game.BOARD_MARGIN_X + tileX * Dot.SIZE;
 
     static inline public function ToPixelY(tileY:Int)
         return Game.BOARD_MARGIN_Y + tileY * Dot.SIZE;
+
+    static inline public inline function ToTileX(x:Float):Int
+        return Std.int((x - Game.BOARD_MARGIN_X) / Dot.SIZE);
+
+    static inline public function ToTileY(y:Float):Int
+        return Std.int((y - Game.BOARD_MARGIN_Y) / Dot.SIZE);
 
     static inline public function getTextField(x:Float, y:Float, text:String, size:Int)
     {
@@ -325,18 +338,14 @@ class Dot extends Sprite
     public static inline var SIZE = 16;
     public var id:Int;
     private var color:Int;
-    private var towerTimer:haxe.Timer;
-    private var dotTimer:haxe.Timer;
-
 
     public function new(tileX, tileY) {
         super();
         this.createDot(DEFAULT_COLOR);
         this.id = 0;
-        this.x = Tool.ToPixelX(tileX);
-        this.y = Tool.ToPixelY(tileY);
+        this.x = Tool.ToPixelX2(tileX);
+        this.y = Tool.ToPixelY2(tileY);
         // this.color = DEFAULT_COLOR;
-        this.dotTimer = new haxe.Timer(1);
     }
 
     private function createDot(color:Int) {
@@ -368,23 +377,21 @@ class Dot extends Sprite
         createDot(newColor);
         // if(Game.LAGFREE) {
             this.alpha = 0.5;
-            this.dotTimer = new haxe.Timer(2000);
-            this.dotTimer.run = this.resetDot;
-        // }
-    }
+            Actuate.timer(2).onComplete(function() {
+                this.alpha = 1;
+                Actuate.stop(this);
+                createDot(this.color);
+            });
 
-    private function resetDot()
-    {
-        this.alpha = 1;
-        this.dotTimer.stop();
-        createDot(this.color);
+        // }
     }
 
     public function changeColor(_id:Int, newColor:Int)
     {
         if(Game.LAGFREE) {
             this.alpha = 1;
-            this.dotTimer.stop();
+            // this.dotTimer.stop();
+            Actuate.stop(this);
         }
         createDot(newColor);
         this.id = _id;
@@ -575,6 +582,107 @@ class Player
 }
 
 
+
+class Cursor extends Sprite
+{
+    var bitmaps = [new Bitmap(Assets.getBitmapData("assets/cursor_default.png")),
+                   new Bitmap(Assets.getBitmapData("assets/cursor_cross.png")),
+                   new Bitmap(Assets.getBitmapData("assets/cursor_pillar.png"))];
+
+    public function new()
+    {
+        super();
+
+        for(bitmap in bitmaps)
+        {
+            bitmap.alpha = 0;
+            this.addChild(bitmap);
+        }
+    }
+
+    public function switchTo(num:Int)
+    {
+        for(bitmap in bitmaps)
+        {
+            if(bitmap == bitmaps[num])
+                bitmap.alpha = 1;
+            else
+                bitmap.alpha = 0;
+        }
+    }
+
+    public function setPosition(tileX:Int, tileY:Int)
+    {
+        this.x = Tool.ToPixelX(tileX);
+        this.y = Tool.ToPixelY(tileY);
+    }
+}
+
+
+
+class Board extends Sprite
+{
+    public var dots:Array<Array<Dot>>;
+
+    public function new()
+    {
+        super();
+        this.x = Game.BOARD_MARGIN_X;
+        this.y = Game.BOARD_MARGIN_Y;
+
+        this.dots = createDots();
+    }
+
+    private function createDots()
+    {
+        // BOARD DOTS
+        var xArray:Array<Array<Dot>> = new Array();
+        for(x in 0...CST.SIZE)
+        {
+            var yArray:Array<Dot> = new Array();
+            xArray.push(yArray);
+            for(y in 0...CST.SIZE)
+            {
+                var dot:Dot = new Dot(x, y);
+                this.addChild(dot);
+                yArray.push(dot);
+            }
+        }
+
+        // CONTOUR IMAGES
+        var cornerTopLeft = new TileBMP(-1, -1, "corner.png");
+        this.addChild(cornerTopLeft);
+
+        var cornerTopRight = new TileBMP(CST.SIZE, -1, "corner.png");
+        cornerTopRight.flipX();
+        this.addChild(cornerTopRight);
+
+        var cornerBottomLeft = new TileBMP(-1, CST.SIZE, "corner.png");
+        cornerBottomLeft.flipY();
+        this.addChild(cornerBottomLeft);
+
+        var cornerBottomRight = new TileBMP(CST.SIZE, CST.SIZE, "corner.png");
+        cornerBottomRight.flipX();
+        cornerBottomRight.flipY();
+        this.addChild(cornerBottomRight);
+
+        // CONTOUR SHAPES
+        for(x in 0...CST.SIZE) {
+            this.addChild(new Tile(x, -1, 0xd95b43));
+            this.addChild(new Tile(x, CST.SIZE, 0xd95b43));
+        }
+
+        for(y in 0...CST.SIZE) {
+            this.addChild(new Tile(-1, y, 0xd95b43));
+            this.addChild(new Tile(CST.SIZE, y, 0xd95b43));
+        }
+
+        return xArray;
+    } 
+}
+
+
+
 class Game extends Sprite
 {
     public static var COLUMN_WIDTH = 230;
@@ -596,6 +704,7 @@ class Game extends Sprite
     private var energyBarLF:Bar;
     private var ranks:Map<Int, Rank> = new Map();
     private var chat:Chat;
+    private var cursor:Cursor = new Cursor();
     
     // SOUND
     private var tick:openfl.media.Sound = Assets.getSound("assets/sound/click1.wav");
@@ -603,8 +712,8 @@ class Game extends Sprite
 
     // WORLD
     private var players:Map<Int, Player> = new Map();
-    private var dots:Array<Array<Dot>>;
     private var pillars:Array<Pillar> = new Array();
+    private var board:Board;
     
     // MISC
     private var socket:Socket;
@@ -615,6 +724,7 @@ class Game extends Sprite
     public function new(nick:String)
     {
         super();
+
         this.nick = nick;
 
         // FPS
@@ -627,7 +737,8 @@ class Game extends Sprite
         this.socket.endian = BIG_ENDIAN;
         // this.socket.connect("caribou.servebeer.com", 9999);
         // this.socket.connect("carib0u.dyndns.org", 9999);
-        this.socket.connect("127.0.0.1", 9999);
+        // this.socket.connect("127.0.0.1", 9999);
+        this.socket.connect("192.168.1.42", 9999);
         this.socket.addEventListener(Event.CONNECT, onConnect);
         this.socket.addEventListener(ProgressEvent.SOCKET_DATA, dataHandler); 
         this.socket.addEventListener(SecurityErrorEvent.SECURITY_ERROR, onSecError);
@@ -683,124 +794,61 @@ class Game extends Sprite
         }
     }
 
-    private function createDots(SIZE:Int)
-    {
-        // BOARD DOTS
-        var xArray:Array<Array<Dot>> = new Array();
-        for(x in 0...SIZE)
-        {
-            var yArray:Array<Dot> = new Array();
-            xArray.push(yArray);
-            for(y in 0...SIZE)
-            {
-                var dot:Dot = new Dot(x, y);
-                this.addChild(dot);
-                yArray.push(dot);
-            }
-        }
-
-        // CONTOUR IMAGES
-        var cornerTopLeft = new TileBMP(-1, -1, "corner.png", Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y);
-        this.addChild(cornerTopLeft);
-
-        var cornerTopRight = new TileBMP(SIZE, -1, "corner.png", Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y);
-        cornerTopRight.flipX();
-        this.addChild(cornerTopRight);
-
-        var cornerBottomLeft = new TileBMP(-1, SIZE, "corner.png", Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y);
-        cornerBottomLeft.flipY();
-        this.addChild(cornerBottomLeft);
-
-        var cornerBottomRight = new TileBMP(SIZE, SIZE, "corner.png", Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y);
-        cornerBottomRight.flipX();
-        cornerBottomRight.flipY();
-        this.addChild(cornerBottomRight);
-
-        // CONTOUR SHAPES
-        for(x in 0...SIZE) {
-            this.addChild(new Tile(x, -1, 0xd95b43, Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y));
-            this.addChild(new Tile(x, SIZE, 0xd95b43, Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y));
-        }
-
-        for(y in 0...SIZE) {
-            this.addChild(new Tile(-1, y, 0xd95b43, Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y));
-            this.addChild(new Tile(SIZE, y, 0xd95b43, Game.BOARD_MARGIN_X, Game.BOARD_MARGIN_Y));
-        }
-
-        return xArray;
-    }
-
     private function onMouseOver(event:MouseEvent)
     {
-        for(posx in 0...this.dots.length)
+        var tileX = Tool.ToTileX(event.stageX);
+        var tileY = Tool.ToTileY(event.stageY);
+
+        // BOARD ZONE
+        if(tileX >= 0 && tileX < CST.SIZE && tileY >= 0 && tileY < CST.SIZE)
         {
-            for(posy in 0...this.dots[posx].length)
+            cursor.setPosition(tileX, tileY);
+            var dot = this.board.dots[tileX][tileY];
+
+            if(dot.id != this.id && this.LFenergy > CST.DOT_COST)
             {
-                var dot = this.dots[posx][posy];
-
-                if(event.target == dot)
-                {
-
-                    // if(Game.LAGFREE) {
-                        if(dot.id != this.id && this.LFenergy > CST.DOT_COST)
-                        {
-                            // this.LFenergy -= CST.DOT_COST;
-                            dot.focusDot(this.color);
-                            socket.writeByte(CST.DOT_COLOR);
-                            socket.writeByte(posx);
-                            socket.writeByte(posy);
-                        }
-                    // }
-                    // else {
-                        // if(dot.id != this.id && this.energy > DOT_COST) {
-                    //         socket.writeByte(DOT_COLOR);
-                    //         socket.writeByte(posx);
-                    //         socket.writeByte(posy);
-                    //     }
-                    // }
-                }
+                // this.LFenergy -= CST.DOT_COST;
+                dot.focusDot(this.color);
+                socket.writeByte(CST.DOT_COLOR);
+                socket.writeByte(tileX);
+                socket.writeByte(tileY);
             }
         }
     }
 
     private function onMouseDown(event:MouseEvent)
     {
-        for(posx in 0...this.dots.length)
-        {
-            for(posy in 0...this.dots[posx].length)
-            {
-                var dot = this.dots[posx][posy];
+        var tileX = Tool.ToTileX(event.stageX);
+        var tileY = Tool.ToTileY(event.stageY);
 
-                if(event.target == dot)  // PLEASE...
-                {
-                    if(dot.id == this.id)
-                    {
-                        socket.writeByte(CST.TOWER);
-                        socket.writeByte(posx);
-                        socket.writeByte(posy);
-                    }
-                }
+        // BOARD ZONE
+        if(tileX >= 0 && tileX < CST.SIZE && tileY >= 0 && tileY < CST.SIZE)
+        {
+            var dot = this.board.dots[tileX][tileY];
+            if(dot.id == this.id)
+            {
+                socket.writeByte(CST.TOWER);
+                socket.writeByte(tileX);
+                socket.writeByte(tileY);
             }
         }
     }
 
     private function onRightMouseDown(event:MouseEvent)
     {
-        for(posx in 0...this.dots.length)
-        {
-            for(posy in 0...this.dots[posx].length)
-            {
-                var dot = this.dots[posx][posy];
 
-                if(event.target == dot)  // PLEASE...
-                {
-                    if(dot.id == this.id)
-                    {
-                        socket.writeByte(CST.PILLAR);
-                        socket.writeByte(posx);
-                        socket.writeByte(posy);
-                    }
-                }
+        var tileX = Tool.ToTileX(event.stageX);
+        var tileY = Tool.ToTileY(event.stageY);
+
+        // BOARD ZONE
+        if(tileX >= 0 && tileX < CST.SIZE && tileY >= 0 && tileY < CST.SIZE)
+        {
+            var dot = this.board.dots[tileX][tileY];
+            if(dot.id == this.id)
+            {
+                socket.writeByte(CST.PILLAR);
+                socket.writeByte(tileX);
+                socket.writeByte(tileY);
             }
         }
     }
@@ -814,6 +862,13 @@ class Game extends Sprite
             // if(Game.LAGFREE) {
                 if(this.id != 0)
                 {
+                    // CURSOR
+                    if(energy > 25)
+                        cursor.switchTo(1);
+                    if(energy > 50)
+                        cursor.switchTo(2);
+
+                    // ENERGY REGEN
                     this.LFenergy += CST.DOT_REGEN * elapsedTime / 1000;
                     if(this.LFenergy > this.energyMax)
                     {
@@ -888,12 +943,12 @@ class Game extends Sprite
 
                 if(flag == 1)
                 {
-                    this.dots[tileX][tileY].createTower();
+                    this.board.dots[tileX][tileY].createTower();
                     this.vlam.play();
                 }
                 else
                 {
-                    this.dots[tileX][tileY].destroyTower();
+                    this.board.dots[tileX][tileY].destroyTower();
                 }
             }
 
@@ -950,7 +1005,8 @@ class Game extends Sprite
             if(msgType == CST.MAP)
             {
                 var SIZE:Int = socket.readUnsignedByte();
-                this.dots = createDots(SIZE);
+                this.board = new Board();
+                addChild(this.board);
 
                 for(x in 0...SIZE) {
                     for(y in 0...SIZE)
@@ -961,18 +1017,22 @@ class Game extends Sprite
                         {
                             var player = this.players.get(_id);
                             var color = player.color;
-                            this.dots[x][y].changeColor(_id, color);
+                            this.board.dots[x][y].changeColor(_id, color);
                         }
                         else {
-                            this.dots[x][y].changeColor(_id, Dot.DEFAULT_COLOR);
+                            this.board.dots[x][y].changeColor(_id, Dot.DEFAULT_COLOR);
                         }
                     }
                 }
 
+                // SPAWN MOUSE CURSOR
+                this.cursor.switchTo(0);
+                addChild(this.cursor);
+
                 // ATTACH EVENTS
-                Lib.current.stage.addEventListener(MouseEvent.MOUSE_OVER, onMouseOver);
-                Lib.current.stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
-                Lib.current.stage.addEventListener(MouseEvent.RIGHT_MOUSE_DOWN, onRightMouseDown);
+                stage.addEventListener(MouseEvent.MOUSE_OVER, onMouseOver);
+                stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
+                stage.addEventListener(MouseEvent.RIGHT_MOUSE_DOWN, onRightMouseDown);
             }
 
             if(msgType == CST.DOT_COLOR)
@@ -986,7 +1046,7 @@ class Game extends Sprite
                 {
                     var player = this.players.get(_id);
                     var color:Int = player.color;
-                    this.dots[posx][posy].changeColor(_id, color);
+                    this.board.dots[posx][posy].changeColor(_id, color);
 
                     // IF MYSELF
                     if(_id == this.id)
@@ -996,7 +1056,7 @@ class Game extends Sprite
                 }
                 // IF BACK TO DEFAULT DOT
                 else {
-                    this.dots[posx][posy].changeColor(_id, Dot.DEFAULT_COLOR);
+                    this.board.dots[posx][posy].changeColor(_id, Dot.DEFAULT_COLOR);
                 }
             }
 
@@ -1065,12 +1125,15 @@ class LD23 extends Sprite {
     private var login:TextField;
     private var intro:Bitmap;
 
-    public function new() {
+    public function new()
+    {
         super();
         popLogin();
     }
 
-    private function popLogin() {
+    private function popLogin()
+    {
+
         var background = new Bitmap(Assets.getBitmapData("assets/login.png"));
         this.addChild(background);
 

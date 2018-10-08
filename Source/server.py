@@ -1,4 +1,3 @@
-from __future__ import annotations
 import struct
 import random
 import math
@@ -34,43 +33,43 @@ class BinaryStream:
         self.int_struct = struct.Struct("!i")
         self.short_struct = struct.Struct("!h")
 
-    def put_data(self, data:bytes) -> None:
+    def put_data(self, data):
         self.data = data
         self.len_data = len(data)
-        self.pos:int = 0
+        self.pos = 0
 
-    def read_data_left(self) -> bytes:
+    def read_data_left(self):
         return self.data[self.pos:]
 
-    def read_byte(self) -> bytes:
+    def read_byte(self):
         size = 1
         byte = self.data[self.pos:self.pos + size]
         byte, = self.byte_struct.unpack(byte)
         self.pos += size
         return byte
 
-    def read_ubyte(self) -> bytes:
+    def read_ubyte(self):
         size = 1
         byte = self.data[self.pos:self.pos + size]
         byte, = self.ubyte_struct.unpack(byte)
         self.pos += size
         return byte
 
-    def read_int(self) -> bytes:
+    def read_int(self):
         size = 4
         _int = self.data[self.pos:self.pos + size]
         _int, = self.int_struct.unpack(_int)
         self.pos += size
         return _int
 
-    def read_short(self) -> bytes:
+    def read_short(self):
         size = 2
         short = self.data[self.pos:self.pos + size]
         short, = self.short_struct.unpack(short)
         self.pos += size
         return short
 
-    def read_UTF(self) -> bytes:
+    def read_UTF(self):
         size = 2
         length = self.data[self.pos:self.pos + size]
         length, = self.short_struct.unpack(length)
@@ -80,7 +79,7 @@ class BinaryStream:
         self.pos += length
         return string
 
-    def working(self) -> bool:
+    def working(self):
         if self.pos == self.len_data:
             return False
         else:
@@ -103,7 +102,7 @@ def read_policy():
 
 
 class Connection(WebSocketServerProtocol):
-    _ids:List[int] = list(range(1, 255))
+    _ids = list(range(1, 255))
     energy = CST.ENERGY_DEFAULT
     dots = 0
 
@@ -111,10 +110,10 @@ class Connection(WebSocketServerProtocol):
         super().__init__()
         self.tosend = b''
         self.energy_max = 20 + self.dots * 0.2
-        self.towers:List[Tower] = []
-        self.pillars:List[Pillar] = []
+        self.towers = []
+        self.pillars = []
         self.last_frame_time = time.time()
-        self.temp_dots:List[Dot] = []
+        self.temp_dots = []
         self.REALLY_connected = 0
         self.checklist = [
                         (-1, 0),
@@ -127,13 +126,13 @@ class Connection(WebSocketServerProtocol):
                         (-1, -1)
                         ]
 
-    def enc(self, string:str) -> bytes:
+    def enc(self, string):
         return string.encode("utf-8")
 
-    def dec(self, string:bytes) -> str:
+    def dec(self, string):
         return string.decode("utf-8")
 
-    def onMessage(self, data:bytes, isBinary:bool):
+    def onMessage(self, data, isBinary):
         ## echo back message verbatim
 
         bs.put_data(data)
@@ -277,7 +276,7 @@ class Connection(WebSocketServerProtocol):
         if self in mg.connections.values():
             del mg.connections[self.id]
 
-    def push_dot(self, posx:int, posy:int):
+    def push_dot(self, posx, posy):
 
         if (posx, posy) in mg.world:
             old_owner_id = mg.world[(posx, posy)]
@@ -293,7 +292,7 @@ class Connection(WebSocketServerProtocol):
             return True
         return False
 
-    def send(self, data:bytes):
+    def send(self, data):
         self.tosend += data
 
     def update(self):
@@ -425,6 +424,8 @@ class GameServer(WebSocketServerFactory):
 
 
 if __name__ == '__main__':
+    print(sys.argv[0])
+
     # Game server
     mg = Manager()
     game_server = GameServer(u"ws://127.0.0.1:9999")
