@@ -9,6 +9,7 @@ import openfl.Assets;
 import openfl.Lib;
 import openfl.text.TextField;
 import openfl.text.TextFormat;
+import openfl.text.TextFieldAutoSize;
 import openfl.events.KeyboardEvent;
 import openfl.events.MouseEvent;
 import openfl.ui.Keyboard;
@@ -406,7 +407,7 @@ class Bar extends Sprite
     var content:Sprite;
     var line:Sprite;
     var realWidth:Int;
-    var skills:Array<SkillIcon> = new Array();
+    public var skills:Array<SkillIcon> = new Array();
 
     public function new(color:Int)
     {
@@ -514,6 +515,7 @@ class Bar extends Sprite
 
 class SkillIcon extends Sprite
 {
+    public var description:String;
     var num:Int;
     var unlocked = false;
     var available = false;
@@ -531,6 +533,12 @@ class SkillIcon extends Sprite
         bmp.y -= bmp.height / 2;
 
         this.addChild(bmp);
+
+        // MOVE THIS TO DATA CLASS
+        if(num == 1)
+            this.description = "Skill that allow you to fire a dot line in 4 directions. 3x3 square needed";
+        if(num == 2)
+            this.description = "Skill that create a tower and will fire dot every X seconds";
     }
 
     public function update(energy:Float, energyMax:Float)
@@ -683,6 +691,47 @@ class Board extends Sprite
 
 
 
+
+class ToolTip extends TextField
+{
+    public function new()
+    {
+        super();
+
+        var font = Assets.getFont(Game.FONT);
+        var format = new TextFormat (font.fontName); 
+        format.size = 20;
+
+        this.defaultTextFormat = format;
+        this.embedFonts = true;
+        this.text = "";
+        this.background = true;
+        this.backgroundColor = 0xfff8a4a4;
+        this.autoSize = TextFieldAutoSize.LEFT;
+        this.multiline = true;
+        this.border = true;
+        this.wordWrap = true;
+        this.width = 250;
+
+        hide();
+    }
+
+    public function show(x:Float, y:Float, description:String)
+    {
+        this.x = x;
+        this.y = y - 100;
+        this.text = description;
+        this.alpha = 1;
+    }
+
+    public function hide()
+    {
+        this.alpha = 0;
+    }
+}
+
+
+
 class Game extends Sprite
 {
     public static var COLUMN_WIDTH = 230;
@@ -705,6 +754,7 @@ class Game extends Sprite
     private var ranks:Map<Int, Rank> = new Map();
     private var chat:Chat;
     private var cursor:Cursor = new Cursor();
+    private var toolTip:ToolTip = new ToolTip();
     
     // SOUND
     private var tick:openfl.media.Sound = Assets.getSound("assets/sound/click1.wav");
@@ -796,6 +846,16 @@ class Game extends Sprite
 
     private function onMouseOver(event:MouseEvent)
     {
+        trace(event.target);
+        for(skillIcon in energyBarLF.skills)
+        {
+            if(event.target == skillIcon)
+            {
+                var worldPoint = skillIcon.localToGlobal(new openfl.geom.Point(0, 0));
+                this.toolTip.show(worldPoint.x, worldPoint.y, skillIcon.description);
+            }
+        }
+
         var tileX = Tool.ToTileX(event.stageX);
         var tileY = Tool.ToTileY(event.stageY);
 
@@ -812,6 +872,17 @@ class Game extends Sprite
                 socket.writeByte(CST.DOT_COLOR);
                 socket.writeByte(tileX);
                 socket.writeByte(tileY);
+            }
+        }
+    }
+
+    private function onMouseOut(event:MouseEvent) // MOVE TO ITS CLASS
+    {
+        for(skillIcon in energyBarLF.skills)
+        {
+            if(event.target == skillIcon)
+            {
+                this.toolTip.hide();
             }
         }
     }
@@ -1025,12 +1096,16 @@ class Game extends Sprite
                     }
                 }
 
+                // SPAWN TOOLTIP
+                addChildAt(this.toolTip, numChildren);
+
                 // SPAWN MOUSE CURSOR
                 this.cursor.switchTo(0);
                 addChild(this.cursor);
 
                 // ATTACH EVENTS
                 stage.addEventListener(MouseEvent.MOUSE_OVER, onMouseOver);
+                stage.addEventListener(MouseEvent.MOUSE_OUT, onMouseOut);
                 stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
                 stage.addEventListener(MouseEvent.RIGHT_MOUSE_DOWN, onRightMouseDown);
             }
