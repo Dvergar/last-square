@@ -169,9 +169,16 @@ class Connection(WebSocketServerProtocol):
                                                     self.id, 8,
                                                     self.enc(self.nick), self.color, 1))
 
-                # map
+                # MAP
                 exp_world = self.factory.get_world()                
                 self.send(get_map_struct(exp_world))
+
+                print(len(self.pillars))
+                # SEND TOWERS
+                for pillar in Pillar._registry:
+                    print("send tower")
+                    self.send(struct.pack("!5B", CST.PILLAR, 1, pillar.owner.id, pillar.x, pillar.y))
+
 
             if msg_type == CST.DOT_COLOR:
                 posx, posy = int(bs.read_byte()), int(bs.read_byte())
@@ -179,8 +186,6 @@ class Connection(WebSocketServerProtocol):
                     pushed = self.push_dot(posx, posy)
                     if pushed:
                         self.energy -= CST.DOT_COST
-                # else:
-                #     self.temp_dots.append((posx, posy))
 
             if msg_type == CST.TOWER:
                 log("Tower create")

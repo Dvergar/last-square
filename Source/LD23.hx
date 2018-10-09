@@ -358,8 +358,8 @@ class Dot extends Sprite
         // CLIENT-SIDE PREDICTION
         // this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 0, 0 ,0);
         Actuate.stop(this.transform.colorTransform, null, false, false);
-        this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 14, 14 ,14);
-        Actuate.tween(this.transform.colorTransform, 4, {redOffset:0, greenOffset:0, blueOffset:0});
+        this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 50, 50 ,50);
+        Actuate.tween(this.transform.colorTransform, 2, {redOffset:0, greenOffset:0, blueOffset:0});
     }
 
     public function createTower()
@@ -375,16 +375,16 @@ class Dot extends Sprite
 
     public function focusDot(newColor:Int)
     {
-        createDot(newColor);
-        // if(Game.LAGFREE) {
-            this.alpha = 0.5;
-            Actuate.timer(2).onComplete(function() {
-                this.alpha = 1;
-                Actuate.stop(this);
-                createDot(this.color);
-            });
+        // createDot(newColor);
+        // // if(Game.LAGFREE) {
+        //     this.alpha = 0.5;
+        //     Actuate.timer(2).onComplete(function() {
+        //         this.alpha = 1;
+        //         Actuate.stop(this);
+        //         createDot(this.color);
+        //     });
 
-        // }
+        // // }
     }
 
     public function changeColor(_id:Int, newColor:Int)
@@ -787,8 +787,8 @@ class Game extends Sprite
         this.socket.endian = BIG_ENDIAN;
         // this.socket.connect("caribou.servebeer.com", 9999);
         // this.socket.connect("carib0u.dyndns.org", 9999);
-        // this.socket.connect("127.0.0.1", 9999);
-        this.socket.connect("192.168.1.42", 9999);
+        this.socket.connect("127.0.0.1", 9999);
+        // this.socket.connect("192.168.1.42", 9999);
         this.socket.addEventListener(Event.CONNECT, onConnect);
         this.socket.addEventListener(ProgressEvent.SOCKET_DATA, dataHandler); 
         this.socket.addEventListener(SecurityErrorEvent.SECURITY_ERROR, onSecError);
@@ -860,7 +860,7 @@ class Game extends Sprite
         var tileY = Tool.ToTileY(event.stageY);
 
         // BOARD ZONE
-        if(tileX >= 0 && tileX < CST.SIZE && tileY >= 0 && tileY < CST.SIZE)
+        if(Std.is(event.target, Dot))
         {
             cursor.setPosition(tileX, tileY);
             var dot = this.board.dots[tileX][tileY];
@@ -868,6 +868,8 @@ class Game extends Sprite
             if(dot.id != this.id && this.LFenergy > CST.DOT_COST)
             {
                 // this.LFenergy -= CST.DOT_COST;
+                trace("hello");
+                this.tick.play();
                 dot.focusDot(this.color);
                 socket.writeByte(CST.DOT_COLOR);
                 socket.writeByte(tileX);
@@ -1025,6 +1027,8 @@ class Game extends Sprite
 
             if(msgType == CST.PILLAR)
             {
+                trace("spawn tower");
+
                 var flag = socket.readUnsignedByte();
                 var ownerId = socket.readUnsignedByte();
                 var player = this.players.get(ownerId);
@@ -1040,7 +1044,7 @@ class Game extends Sprite
                 else
                 {
                     var i = pillars.length;
-                    while (i-- > 0)
+                    while (i-- >= 0)
                     {
                         if(pillars[i].ownerId == ownerId)
                         {
@@ -1126,7 +1130,7 @@ class Game extends Sprite
                     // IF MYSELF
                     if(_id == this.id)
                     {
-                        this.tick.play();
+                        // this.tick.play();
                     }
                 }
                 // IF BACK TO DEFAULT DOT
