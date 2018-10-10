@@ -103,6 +103,9 @@ def read_policy():
 
 class Game:
     def __init__(self):
+        self.players = {}
+        self.pillars = []
+        self.towers = []
         self.gen_world()
         self.tower_time = time.time()
         self.pillar_time = time.time()
@@ -133,7 +136,7 @@ class Game:
     def active_players(self):
         count = 0
 
-        for player in mg.connections.values():
+        for player in players.values():
             if player.dots:
                 count += 1
 
@@ -144,7 +147,7 @@ class Game:
 
     def generate_ranking(self):
         # Also check end of the game
-        for player in mg.connections.values():
+        for player in self.players.values():
             # if player.dots > CST.SIZE ** 2 / (0.8 * self.active_players()):
             print(player.dots, CST.WIN_DOTS)
             if player.dots > CST.WIN_DOTS:
@@ -171,12 +174,12 @@ class Game:
             connection.update()
 
         if time.time() - self.tower_time > 0.4:
-            for tower in Tower._registry:
+            for tower in mg.game.towers:
                 tower.propagate()
             self.tower_time = time.time()
 
         if time.time() - self.pillar_time > 1:
-            for pillar in Pillar._registry:
+            for pillar in mg.game.pillars:
                 pillar.attack()
             self.pillar_time = time.time()
 
@@ -190,19 +193,38 @@ class Game:
 
 
 
+class Player:
+    def __init__(self):
+        self.energy = CST.ENERGY_DEFAULT
+        self.dots = 0
+        self.color = 0
+        self.nick = ""
+        self.energy_max = 20 + self.dots * 0.2
+
+        self.towers = []
+        self.pillars = []
+
+    def update(self, dt):
+        self.energy_max = 20 + self.dots * 0.2
+
+        if self.energy_max > 100:
+            self.energy_max = 100
+        self.energy += CST.DOT_REGEN * dt
+        if self.energy > self.energy_max:
+            self.energy = self.energy_max
+        elif self.energy < 0:
+            self.energy = 0
+
+
 class Connection(WebSocketServerProtocol):
     _ids = list(range(1, 255))
-    energy = CST.ENERGY_DEFAULT
-    dots = 0
 
     def __init__(self):
         super().__init__()
+        self.player = None
         self.tosend = b''
-        self.energy_max = 20 + self.dots * 0.2
-        self.towers = []
-        self.pillars = []
+
         self.last_frame_time = time.time()
-        self.temp_dots = []
         self.REALLY_connected = 0
         self.checklist = [
                         (-1, 0),
@@ -232,17 +254,22 @@ class Connection(WebSocketServerProtocol):
             if msg_type == CST.CONNECTION:
                 # Here to prevent client receiving other clients datas before init
                 mg.connections[self.id] = self
-                # Manager.obj.conns.append(self.id)
+
                 print("Num connections", len(mg.connections.values()))
                 self.tosend = b''
 
+                # NEW PLAYER
+                self.player = Player()
+                self.player.id = self.id
+                mg.game.players[self.id] = self.player
+                self.player.nick = bs.read_UTF().decode("utf-8")
+
                 # RANDOM COLOR
-                self.nick = bs.read_UTF().decode("utf-8")
                 color, = randomcolor.RandomColor().generate(luminosity="light")
-                self.color = int("0x" + color[1:], 16)
+                self.player.color = int("0x" + color[1:], 16)
 
                 self.REALLY_connected = 1  # HOHO
-                log("Connection from " + str(self.nick))
+                log("Connection from " + str(self.player.nick))
 
                 # send connected players data
                 for connection in mg.connections.values():
@@ -256,31 +283,30 @@ class Connection(WebSocketServerProtocol):
                             # Send me to me
                             self.send(struct.pack("!BBH8siB", CST.CONNECTION,
                                                     self.id, 8,
-                                                    self.enc(self.nick), self.color, 1))
+                                                    self.enc(self.player.nick), self.player.color, 1))
 
                 # MAP
                 exp_world = mg.game.get_world()
                 self.send(get_map_struct(exp_world))
 
-                print(len(self.pillars))
                 # SEND TOWERS
-                for pillar in Pillar._registry:
+                for pillar in mg.game.pillars:
                     print("send tower")
                     self.send(struct.pack("!5B", CST.PILLAR, 1, pillar.owner.id, pillar.x, pillar.y))
 
 
             if msg_type == CST.DOT_COLOR:
                 posx, posy = int(bs.read_byte()), int(bs.read_byte())
-                if self.energy > CST.DOT_COST:
+                if self.player.energy > CST.DOT_COST:
                     pushed = self.push_dot(posx, posy)
                     if pushed:
-                        self.energy -= CST.DOT_COST
+                        self.player.energy -= CST.DOT_COST
 
             if msg_type == CST.TOWER:
                 log("Tower create")
                 x, y = int(bs.read_byte()), int(bs.read_byte())
 
-                if self.energy > 25:
+                if self.player.energy > 25:
                     buildable = True
 
                     for (dx, dy) in self.checklist:
@@ -296,8 +322,8 @@ class Connection(WebSocketServerProtocol):
                     if buildable:
                         print("buildable")
                         mg.broadcast(struct.pack("!4B", CST.TOWER, 1, x, y))
-                        self.towers.append(Tower(mg, x, y, self))
-                        self.energy -= 25
+                        mg.game.towers.append(Tower(mg, x, y, self))
+                        self.player.energy -= 25
 
 
             if msg_type == CST.PILLAR:
@@ -315,7 +341,7 @@ class Connection(WebSocketServerProtocol):
                 if buildable:
                     print("buildable")
                     mg.broadcast(struct.pack("!5B", CST.PILLAR, 1, self.id, x, y))
-                    self.pillars.append(Pillar(mg, x, y, self))
+                    mg.game.pillars.append(Pillar(mg, x, y, self))
 
 
             if msg_type == CST.MESSAGE:
@@ -340,10 +366,10 @@ class Connection(WebSocketServerProtocol):
 
     def onClose(self, wasClean, code, reason):
         log("Connection lost...")
-        for tower in reversed(self.towers):
+        for tower in reversed(self.player.towers):
             tower.destroy()
 
-        for pillar in reversed(self.pillars):
+        for pillar in reversed(self.player.pillars):
             pillar.destroy()
 
         if self in mg.connections.values():
@@ -358,11 +384,12 @@ class Connection(WebSocketServerProtocol):
                 mg.broadcast(struct.pack("!4B", CST.DOT_COLOR, 0, posx, posy))  # only client-side please
 
     def reset(self):
-        for tower in self.towers:
-            Tower._registry.remove(tower)
+        pass
+        # for tower in self.towers:
+        #     Tower._registry.remove(tower)
 
-        self.towers = []
-        self.dots = 0
+        # self.towers = []
+        # self.dots = 0
 
     def disconnect(self):
         self._ids.append(self.id)
@@ -374,10 +401,10 @@ class Connection(WebSocketServerProtocol):
 
         if (posx, posy) in mg.world:
             old_owner_id = mg.world[(posx, posy)]
-            if old_owner_id and old_owner_id in mg.connections:
-                old_owner = mg.connections[old_owner_id]
+            if old_owner_id in mg.game.players:
+                old_owner = mg.game.players[old_owner_id]
                 old_owner.dots -= 1
-            self.dots += 1
+            self.player.dots += 1
             
             mg.world[(posx, posy)] = self.id
             mg.broadcast(struct.pack("!4B", CST.DOT_COLOR, self.id,
@@ -396,15 +423,7 @@ class Connection(WebSocketServerProtocol):
         #     posx, posy = self.temp_dots.pop(0)
         #     self.push_dot(posx, posy)
 
-        self.energy_max = 20 + self.dots * 0.2
-
-        if self.energy_max > 100:
-            self.energy_max = 100
-        self.energy += CST.DOT_REGEN * dt
-        if self.energy > self.energy_max:
-            self.energy = self.energy_max
-        elif self.energy < 0:
-            self.energy = 0
+        self.player.update(dt)
 
         # if time.clock() - self.energy_time > 1:
         self.send(self.get_datas_update())
@@ -421,7 +440,7 @@ class Connection(WebSocketServerProtocol):
                                         self.enc(self.nick), self.color, 0)
 
     def get_datas_update(self):
-        return struct.pack("!3B", CST.UPDATE, int(self.energy), int(self.energy_max))
+        return struct.pack("!3B", CST.UPDATE, int(self.player.energy), int(self.player.energy_max))
 
 
 def get_map_struct(world):
@@ -436,96 +455,6 @@ class GameServer(WebSocketServerFactory):
         WebSocketServerFactory.__init__(self, uri)
         mg.game = Game()
         print("@@@ Server started @@@")
-
-
-# class GameServer(WebSocketServerFactory):
-#     game_running = False
-
-#     def __init__(self, uri):
-#         WebSocketServerFactory.__init__(self, uri)
-
-#         self.gen_world()
-#         self.tower_time = time.time()
-#         self.pillar_time = time.time()
-
-#         self.l = task.LoopingCall(self.game_loop)
-#         self.l.start(1 / 10.)
-
-#         self.l = task.LoopingCall(self.generate_ranking)
-#         self.l.start(3)
-#         print("@@@ Server started @@@")
-
-#     def gen_world(self):
-#         for x in range(0, CST.SIZE):
-#             for y in range(0, CST.SIZE):
-#                 mg.world[(x, y)] = 0
-
-#     def get_world(self):
-#         exp_world = []
-
-#         for x in range(0, CST.SIZE):
-#             for y in range(0, CST.SIZE):
-#                 exp_world.append(mg.world[(x, y)])
-
-#         return exp_world
-
-#     def restart(self):
-#         for conn in mg.connections.values():
-#             conn.reset()
-
-#         self.gen_world()
-#         exp_world = self.get_world()
-#         mg.broadcast(get_map_struct(exp_world))
-
-#     def active_players(self):
-#         count = 0
-
-#         for player in mg.connections.values():
-#             if player.dots:
-#                 count += 1
-
-#         if count == 0:
-#             count = 1
-
-#         return count
-
-#     def generate_ranking(self):
-#         # Also check end of the game
-#         for player in mg.connections.values():
-#             # if player.dots > CST.SIZE ** 2 / (0.8 * self.active_players()):
-#             print(player.dots, CST.WIN_DOTS)
-#             if player.dots > CST.WIN_DOTS:
-#                 log("Game won by " + player.nick)
-#                 mg.broadcast(struct.pack("!BB", CST.WIN, player.id))
-#                 self.restart()
-#                 break
-
-#         # WHY NOT CLIENT-SIDE ONLY ?
-#         ranking = {}
-#         for _id in mg.connections:
-#             count = sum(value == _id for value in mg.world.values())
-#             if count:
-#                 ranking[count] = _id
-
-#         ranking = sorted(ranking.items(), reverse=True)
-#         ranking = [_id for (count, _id) in ranking]
-#         rank_struct = "!BB" + str(len(ranking)) + "B"
-
-#         mg.broadcast(struct.pack(rank_struct, CST.RANKING, len(ranking), *ranking))
-
-#     def game_loop(self):
-#         for connection in mg.connections.values():
-#             connection.update()
-
-#         if time.time() - self.tower_time > 0.4:
-#             for tower in Tower._registry:
-#                 tower.propagate()
-#             self.tower_time = time.time()
-
-#         if time.time() - self.pillar_time > 1:
-#             for pillar in Pillar._registry:
-#                 pillar.attack()
-#             self.pillar_time = time.time()
 
 
 if __name__ == '__main__':

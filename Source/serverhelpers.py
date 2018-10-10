@@ -115,19 +115,8 @@ class Tower:
     __slots__ = ("mg", "owner", "x", "y", "left", "right", "up", "down")
     _hx_fields = ["mg", "owner", "x", "y", "left", "right", "up", "down"]
     _hx_methods = ["propagate", "destroy"]
-    _hx_statics = ["_registry"]
 
     def __init__(self,manager,x,y,owner):
-        self.down = None
-        self.up = None
-        self.right = None
-        self.left = None
-        self.y = None
-        self.x = None
-        self.owner = None
-        self.mg = None
-        _this = Tower._registry
-        _this.append(self)
         self.mg = manager
         self.owner = owner
         self.x = x
@@ -164,8 +153,7 @@ class Tower:
 
     def destroy(self):
         print("Tower destroy")
-        python_internal_ArrayImpl.remove(Tower._registry,self)
-        python_internal_ArrayImpl.remove(self.owner.towers,self)
+        Reflect.field(Reflect.field(self.owner.player,"towers"),"remove")(self)
         ToolHx.broadcast_hx(self.mg,["!4B", 7, 0, self.x, self.y])
 
 
@@ -175,16 +163,8 @@ class Pillar:
     __slots__ = ("manager", "owner", "x", "y", "checklist")
     _hx_fields = ["manager", "owner", "x", "y", "checklist"]
     _hx_methods = ["attack", "destroy"]
-    _hx_statics = ["_registry"]
 
     def __init__(self,manager,x,y,owner):
-        self.checklist = None
-        self.y = None
-        self.x = None
-        self.owner = None
-        self.manager = None
-        _this = Pillar._registry
-        _this.append(self)
         self.manager = manager
         self.owner = owner
         self.x = x
@@ -228,8 +208,7 @@ class Pillar:
 
     def destroy(self):
         print("Pillar destroy")
-        python_internal_ArrayImpl.remove(Pillar._registry,self)
-        python_internal_ArrayImpl.remove(self.owner.pillars,self)
+        Reflect.field(Reflect.field(self.owner.player,"pillars"),"remove")(self)
         ToolHx.broadcast_hx(self.manager,["!4B", 10, 0, self.x, self.y])
 
 
@@ -931,8 +910,6 @@ CST.DOT_REGEN = 3
 CST.SECTOR_COST = 25
 CST.ENERGY_DEFAULT = 100
 CST.WIN_DOTS = (Math.pow(27,2) * 0.8)
-Tower._registry = list()
-Pillar._registry = list()
 python_Boot.keywords = set(["and", "del", "from", "not", "with", "as", "elif", "global", "or", "yield", "assert", "else", "if", "pass", "None", "break", "except", "import", "raise", "True", "class", "exec", "in", "return", "False", "continue", "finally", "is", "try", "def", "for", "lambda", "while"])
 python_Boot.prefixLength = len("_hx_")
 

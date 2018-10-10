@@ -57,8 +57,7 @@ extern class Connection
 {
 	public var _ids:Array<Int>;
 	public var id:Int;
-    public var pillars:Array<Dynamic>;
-    public var towers:Array<Dynamic>;
+	public var player:Dynamic;
     public function push_dot(x:Int, y:Int):Bool;
     public function send(data:String):Void;
 }
@@ -66,7 +65,7 @@ extern class Connection
 
 class Tower
 {
-	public static var _registry:Array<Tower> = new Array();
+	// public static var _registry:Array<Tower> = new Array();
 	private var mg:Manager;
 	private var owner:Connection;
 	private var x:Int;
@@ -78,7 +77,7 @@ class Tower
 
 	public function new(manager:Manager, x:Int, y:Int, owner:Connection)
 	{
-		_registry.push(this);
+		// _registry.push(this);
 		this.mg = manager;
 		this.owner = owner;
 		this.x = x;
@@ -144,8 +143,8 @@ class Tower
 	public function destroy()
 	{
         trace("Tower destroy");
-        _registry.remove(this);
-        this.owner.towers.remove(this);
+        // _registry.remove(this);
+        this.owner.player.towers.remove(this);
         ToolHx.broadcast_hx(this.mg, ["!4B", CST.TOWER, 0, this.x, this.y]);
 	}
 }
@@ -154,7 +153,7 @@ class Tower
 
 class Pillar
 {
-	public static var _registry:Array<Pillar> = new Array();
+	// public static var _registry:Array<Pillar> = new Array();
 	private var manager:Manager;
 	private var owner:Connection;
 	private var x:Int;
@@ -163,7 +162,7 @@ class Pillar
 
 	public function new(manager:Manager, x:Int, y:Int, owner:Connection)
 	{
-		_registry.push(this);
+		// _registry.push(this);
 		this.manager = manager;
 		this.owner = owner;
 		this.x = x;
@@ -208,8 +207,8 @@ class Pillar
     public function destroy()
     {
         trace("Pillar destroy");
-        _registry.remove(this);
-        this.owner.pillars.remove(this);
+        // _registry.remove(this);
+        this.owner.player.pillars.remove(this);
         ToolHx.broadcast_hx(this.manager, ["!4B", CST.PILLAR, 0, this.x, this.y]);
     }
 }
