@@ -31,6 +31,7 @@ class Manager
 {
 	public var connections:Dict<Int, Connection> = new Dict();
 	public var world:World = new Dict();
+	public var game:Dynamic;
 
     function new() {}
 
@@ -66,7 +67,7 @@ extern class Connection
 class Tower
 {
 	public static var _registry:Array<Tower> = new Array();
-	private var manager:Manager;
+	private var mg:Manager;
 	private var owner:Connection;
 	private var x:Int;
 	private var y:Int;
@@ -78,7 +79,7 @@ class Tower
 	public function new(manager:Manager, x:Int, y:Int, owner:Connection)
 	{
 		_registry.push(this);
-		this.manager = manager;
+		this.mg = manager;
 		this.owner = owner;
 		this.x = x;
 		this.y = y;
@@ -100,7 +101,7 @@ class Tower
 
         var propagating = 4;
 
-        if(manager.world.hasKey(this.left))
+        if(mg.world.hasKey(this.left))
         {
             this.owner.push_dot(this.left._1, this.left._2);
         }
@@ -109,7 +110,7 @@ class Tower
             propagating -= 1;
         }
 
-        if(manager.world.hasKey(this.right))
+        if(mg.world.hasKey(this.right))
         {
             this.owner.push_dot(this.right._1, this.right._2);
         }
@@ -118,7 +119,7 @@ class Tower
             propagating -= 1;
         }
 
-        if(manager.world.hasKey(this.up))
+        if(mg.world.hasKey(this.up))
         {
             this.owner.push_dot(this.up._1, this.up._2);
         }
@@ -127,7 +128,7 @@ class Tower
             propagating -= 1;
         }
 
-        if(manager.world.hasKey(this.down))
+        if(mg.world.hasKey(this.down))
         {
             this.owner.push_dot(this.down._1, this.down._2);
         }
@@ -145,7 +146,7 @@ class Tower
         trace("Tower destroy");
         _registry.remove(this);
         this.owner.towers.remove(this);
-        ToolHx.broadcast_hx(this.manager, ["!4B", CST.TOWER, 0, this.x, this.y]);
+        ToolHx.broadcast_hx(this.mg, ["!4B", CST.TOWER, 0, this.x, this.y]);
 	}
 }
 

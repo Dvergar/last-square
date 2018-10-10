@@ -37,7 +37,7 @@ class Enum:
 class CST:
     _hx_class_name = "CST"
     __slots__ = ()
-    _hx_statics = ["MESSAGE", "CONNECTION", "DOT_COLOR", "RANKING", "MAP", "DISCONNECTION", "UPDATE", "TOWER", "FULL", "WIN", "PILLAR", "PILLAR_ATTACK", "SIZE", "DOT_COST", "DOT_REGEN", "SECTOR_COST", "ENERGY_DEFAULT"]
+    _hx_statics = ["MESSAGE", "CONNECTION", "DOT_COLOR", "RANKING", "MAP", "DISCONNECTION", "UPDATE", "TOWER", "FULL", "WIN", "PILLAR", "PILLAR_ATTACK", "SIZE", "DOT_COST", "DOT_REGEN", "SECTOR_COST", "ENERGY_DEFAULT", "WIN_DOTS"]
 
     def __init__(self):
         pass
@@ -93,11 +93,12 @@ class Tool:
 
 class Manager:
     _hx_class_name = "Manager"
-    __slots__ = ("connections", "world")
-    _hx_fields = ["connections", "world"]
+    __slots__ = ("connections", "world", "game")
+    _hx_fields = ["connections", "world", "game"]
     _hx_methods = ["broadcast"]
 
     def __init__(self):
+        self.game = None
         self.world = dict()
         self.connections = dict()
 
@@ -111,8 +112,8 @@ class Manager:
 
 class Tower:
     _hx_class_name = "Tower"
-    __slots__ = ("manager", "owner", "x", "y", "left", "right", "up", "down")
-    _hx_fields = ["manager", "owner", "x", "y", "left", "right", "up", "down"]
+    __slots__ = ("mg", "owner", "x", "y", "left", "right", "up", "down")
+    _hx_fields = ["mg", "owner", "x", "y", "left", "right", "up", "down"]
     _hx_methods = ["propagate", "destroy"]
     _hx_statics = ["_registry"]
 
@@ -124,10 +125,10 @@ class Tower:
         self.y = None
         self.x = None
         self.owner = None
-        self.manager = None
+        self.mg = None
         _this = Tower._registry
         _this.append(self)
-        self.manager = manager
+        self.mg = manager
         self.owner = owner
         self.x = x
         self.y = y
@@ -142,19 +143,19 @@ class Tower:
         self.up = (self.up[0], (self.up[1] + 1))
         self.down = (self.down[0], (self.down[1] - 1))
         propagating = 4
-        if (self.left in self.manager.world):
+        if (self.left in self.mg.world):
             self.owner.push_dot(self.left[0],self.left[1])
         else:
             propagating = (propagating - 1)
-        if (self.right in self.manager.world):
+        if (self.right in self.mg.world):
             self.owner.push_dot(self.right[0],self.right[1])
         else:
             propagating = (propagating - 1)
-        if (self.up in self.manager.world):
+        if (self.up in self.mg.world):
             self.owner.push_dot(self.up[0],self.up[1])
         else:
             propagating = (propagating - 1)
-        if (self.down in self.manager.world):
+        if (self.down in self.mg.world):
             self.owner.push_dot(self.down[0],self.down[1])
         else:
             propagating = (propagating - 1)
@@ -165,7 +166,7 @@ class Tower:
         print("Tower destroy")
         python_internal_ArrayImpl.remove(Tower._registry,self)
         python_internal_ArrayImpl.remove(self.owner.towers,self)
-        ToolHx.broadcast_hx(self.manager,["!4B", 7, 0, self.x, self.y])
+        ToolHx.broadcast_hx(self.mg,["!4B", 7, 0, self.x, self.y])
 
 
 
@@ -929,6 +930,7 @@ CST.DOT_COST = 1
 CST.DOT_REGEN = 3
 CST.SECTOR_COST = 25
 CST.ENERGY_DEFAULT = 100
+CST.WIN_DOTS = (Math.pow(27,2) * 0.8)
 Tower._registry = list()
 Pillar._registry = list()
 python_Boot.keywords = set(["and", "del", "from", "not", "with", "as", "elif", "global", "or", "yield", "assert", "else", "if", "pass", "None", "break", "except", "import", "raise", "True", "class", "exec", "in", "return", "False", "continue", "finally", "is", "try", "def", "for", "lambda", "while"])

@@ -101,6 +101,95 @@ def read_policy():
         return policy
 
 
+class Game:
+    def __init__(self):
+        self.gen_world()
+        self.tower_time = time.time()
+        self.pillar_time = time.time()
+
+        # LOOPS
+        self.l = task.LoopingCall(self.game_loop)
+        self.l.start(1 / 10.)
+
+        self.l = task.LoopingCall(self.generate_ranking)
+        self.l.start(3)
+
+        print("NEW GAME")
+
+    def gen_world(self):
+        for x in range(0, CST.SIZE):
+            for y in range(0, CST.SIZE):
+                mg.world[(x, y)] = 0
+
+    def get_world(self):
+        exp_world = []
+
+        for x in range(0, CST.SIZE):
+            for y in range(0, CST.SIZE):
+                exp_world.append(mg.world[(x, y)])
+
+        return exp_world
+
+    def active_players(self):
+        count = 0
+
+        for player in mg.connections.values():
+            if player.dots:
+                count += 1
+
+        if count == 0:
+            count = 1
+
+        return count
+
+    def generate_ranking(self):
+        # Also check end of the game
+        for player in mg.connections.values():
+            # if player.dots > CST.SIZE ** 2 / (0.8 * self.active_players()):
+            print(player.dots, CST.WIN_DOTS)
+            if player.dots > CST.WIN_DOTS:
+                log("Game won by " + player.nick)
+                mg.broadcast(struct.pack("!BB", CST.WIN, player.id))
+                self.restart()
+                break
+
+        # WHY NOT CLIENT-SIDE ONLY ?
+        ranking = {}
+        for _id in mg.connections:
+            count = sum(value == _id for value in mg.world.values())
+            if count:
+                ranking[count] = _id
+
+        ranking = sorted(ranking.items(), reverse=True)
+        ranking = [_id for (count, _id) in ranking]
+        rank_struct = "!BB" + str(len(ranking)) + "B"
+
+        mg.broadcast(struct.pack(rank_struct, CST.RANKING, len(ranking), *ranking))
+
+    def game_loop(self):
+        for connection in mg.connections.values():
+            connection.update()
+
+        if time.time() - self.tower_time > 0.4:
+            for tower in Tower._registry:
+                tower.propagate()
+            self.tower_time = time.time()
+
+        if time.time() - self.pillar_time > 1:
+            for pillar in Pillar._registry:
+                pillar.attack()
+            self.pillar_time = time.time()
+
+    def restart(self):
+        for conn in mg.connections.values():
+            conn.reset()
+
+        self.gen_world()
+        exp_world = self.get_world()
+        mg.broadcast(get_map_struct(exp_world))
+
+
+
 class Connection(WebSocketServerProtocol):
     _ids = list(range(1, 255))
     energy = CST.ENERGY_DEFAULT
@@ -170,7 +259,7 @@ class Connection(WebSocketServerProtocol):
                                                     self.enc(self.nick), self.color, 1))
 
                 # MAP
-                exp_world = self.factory.get_world()                
+                exp_world = mg.game.get_world()
                 self.send(get_map_struct(exp_world))
 
                 print(len(self.pillars))
@@ -339,93 +428,104 @@ def get_map_struct(world):
     return struct.pack("!BB" + str(CST.SIZE ** 2) + "B", CST.MAP, CST.SIZE, *world)
 
 
+
 class GameServer(WebSocketServerFactory):
     game_running = False
 
     def __init__(self, uri):
         WebSocketServerFactory.__init__(self, uri)
-
-        self.gen_world()
-        self.tower_time = time.time()
-        self.pillar_time = time.time()
-
-        self.l = task.LoopingCall(self.game_loop)
-        self.l.start(1 / 10.)
-
-        self.l = task.LoopingCall(self.generate_ranking)
-        self.l.start(3)
+        mg.game = Game()
         print("@@@ Server started @@@")
 
-    def gen_world(self):
-        for x in range(0, CST.SIZE):
-            for y in range(0, CST.SIZE):
-                mg.world[(x, y)] = 0
 
-    def get_world(self):
-        exp_world = []
+# class GameServer(WebSocketServerFactory):
+#     game_running = False
 
-        for x in range(0, CST.SIZE):
-            for y in range(0, CST.SIZE):
-                exp_world.append(mg.world[(x, y)])
+#     def __init__(self, uri):
+#         WebSocketServerFactory.__init__(self, uri)
 
-        return exp_world
+#         self.gen_world()
+#         self.tower_time = time.time()
+#         self.pillar_time = time.time()
 
-    def restart(self):
-        for conn in mg.connections.values():
-            conn.reset()
+#         self.l = task.LoopingCall(self.game_loop)
+#         self.l.start(1 / 10.)
 
-        self.gen_world()
-        exp_world = self.get_world()
-        mg.broadcast(get_map_struct(exp_world))
+#         self.l = task.LoopingCall(self.generate_ranking)
+#         self.l.start(3)
+#         print("@@@ Server started @@@")
 
-    def active_players(self):
-        count = 0
+#     def gen_world(self):
+#         for x in range(0, CST.SIZE):
+#             for y in range(0, CST.SIZE):
+#                 mg.world[(x, y)] = 0
 
-        for player in mg.connections.values():
-            if player.dots:
-                count += 1
+#     def get_world(self):
+#         exp_world = []
 
-        if count == 0:
-            count = 1
+#         for x in range(0, CST.SIZE):
+#             for y in range(0, CST.SIZE):
+#                 exp_world.append(mg.world[(x, y)])
 
-        return count
+#         return exp_world
 
-    def generate_ranking(self):
-        # Also check end of the game
-        for player in mg.connections.values():
-            # if player.dots > CST.SIZE ** 2 / (0.8 * self.active_players()):
-            if player.dots > CST.SIZE ** 2 / 0.8:
-                log("Game won by " + player.nick)
-                mg.broadcast(struct.pack("!BB", CST.WIN, player.id))
-                self.restart()
-                break
+#     def restart(self):
+#         for conn in mg.connections.values():
+#             conn.reset()
 
-        # WHY NOT CLIENT-SIDE ONLY ?
-        ranking = {}
-        for _id in mg.connections:
-            count = sum(value == _id for value in mg.world.values())
-            if count:
-                ranking[count] = _id
+#         self.gen_world()
+#         exp_world = self.get_world()
+#         mg.broadcast(get_map_struct(exp_world))
 
-        ranking = sorted(ranking.items(), reverse=True)
-        ranking = [_id for (count, _id) in ranking]
-        rank_struct = "!BB" + str(len(ranking)) + "B"
+#     def active_players(self):
+#         count = 0
 
-        mg.broadcast(struct.pack(rank_struct, CST.RANKING, len(ranking), *ranking))
+#         for player in mg.connections.values():
+#             if player.dots:
+#                 count += 1
 
-    def game_loop(self):
-        for connection in mg.connections.values():
-            connection.update()
+#         if count == 0:
+#             count = 1
 
-        if time.time() - self.tower_time > 0.4:
-            for tower in Tower._registry:
-                tower.propagate()
-            self.tower_time = time.time()
+#         return count
 
-        if time.time() - self.pillar_time > 1:
-            for pillar in Pillar._registry:
-                pillar.attack()
-            self.pillar_time = time.time()
+#     def generate_ranking(self):
+#         # Also check end of the game
+#         for player in mg.connections.values():
+#             # if player.dots > CST.SIZE ** 2 / (0.8 * self.active_players()):
+#             print(player.dots, CST.WIN_DOTS)
+#             if player.dots > CST.WIN_DOTS:
+#                 log("Game won by " + player.nick)
+#                 mg.broadcast(struct.pack("!BB", CST.WIN, player.id))
+#                 self.restart()
+#                 break
+
+#         # WHY NOT CLIENT-SIDE ONLY ?
+#         ranking = {}
+#         for _id in mg.connections:
+#             count = sum(value == _id for value in mg.world.values())
+#             if count:
+#                 ranking[count] = _id
+
+#         ranking = sorted(ranking.items(), reverse=True)
+#         ranking = [_id for (count, _id) in ranking]
+#         rank_struct = "!BB" + str(len(ranking)) + "B"
+
+#         mg.broadcast(struct.pack(rank_struct, CST.RANKING, len(ranking), *ranking))
+
+#     def game_loop(self):
+#         for connection in mg.connections.values():
+#             connection.update()
+
+#         if time.time() - self.tower_time > 0.4:
+#             for tower in Tower._registry:
+#                 tower.propagate()
+#             self.tower_time = time.time()
+
+#         if time.time() - self.pillar_time > 1:
+#             for pillar in Pillar._registry:
+#                 pillar.attack()
+#             self.pillar_time = time.time()
 
 
 if __name__ == '__main__':

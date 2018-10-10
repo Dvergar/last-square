@@ -201,6 +201,13 @@ class Rank extends Sprite
         return text;
     }
 
+    public function updateProgression(numDots:Int)
+    {
+        var pc = (numDots / CST.WIN_DOTS) * 100;
+
+        this.rankText.text = this.nick + " : " + Std.int(pc) + "%";
+    }
+
     public function moveText(k)
     {
         this.y = k * HEIGHT;
@@ -337,13 +344,12 @@ class Dot extends Sprite
 {
     public static inline var DEFAULT_COLOR = 0x542437;
     public static inline var SIZE = 16;
-    public var id:Int;
+    public var id:Int = -1;
     private var color:Int;
 
     public function new(tileX, tileY) {
         super();
         this.createDot(DEFAULT_COLOR);
-        this.id = 0;
         this.x = Tool.ToPixelX2(tileX);
         this.y = Tool.ToPixelY2(tileY);
         // this.color = DEFAULT_COLOR;
@@ -580,6 +586,7 @@ class Player
     public var id:Int;
     public var nick:String;
     public var color:Int;
+    public var dots:Int = 0;
 
     public function new(id:Int, nick:String, color:Int)
     {
@@ -757,8 +764,10 @@ class Game extends Sprite
     private var toolTip:ToolTip = new ToolTip();
     
     // SOUND
+    // private var vlam:openfl.media.Sound = Assets.getSound("assets/sound/237422__plasterbrain__hover-1.ogg");
+    // private var tick:openfl.media.Sound = Assets.getSound("assets/sound/237422__plasterbrain__hover-1.ogg");
+    private var vlam:openfl.media.Sound = Assets.getSound("assets/sound/footstep09.ogg");
     private var tick:openfl.media.Sound = Assets.getSound("assets/sound/click1.wav");
-    private var vlam:openfl.media.Sound = Assets.getSound("assets/sound/click1.wav");
 
     // WORLD
     private var players:Map<Int, Player> = new Map();
@@ -962,9 +971,35 @@ class Game extends Sprite
         }
     }
 
+    inline function paintDot(ownerId:Int, tileX:Int, tileY:Int)
+    {
+        var oldDot = this.board.dots[tileX][tileY];
+
+        // REMOVE DOT COUNT FROM OLD PLAYER
+        if(oldDot.id != -1) players.get(oldDot.id).dots -= 1;
+
+        // ADD DOT COUNT TO NEW PLAYER
+        if(ownerId != -1) players.get(ownerId).dots += 1;
+
+        // SWITCH COLOR
+        var color = Dot.DEFAULT_COLOR;
+        if(ownerId != -1) color = players.get(ownerId).color;
+        oldDot.changeColor(ownerId, color);
+
+        // UPDATE RANKS PROGRESSION
+        if(ownerId != -1)
+            this.ranks.get(ownerId).updateProgression(players.get(ownerId).dots);
+    }
+
+    // inline function defaultColor(color:Int, player:Player, x:Int, y:Int)
+    // {
+    //     this.board.dots[x][y].changeColor(player.id, color);
+    // }
+
     private function dataHandler(event:ProgressEvent)
     {
-        while(socket.bytesAvailable > 0) {
+        while(socket.bytesAvailable > 0)
+        {
             var msgType = socket.readUnsignedByte();
 
             if(msgType == CST.CONNECTION)
@@ -1083,8 +1118,8 @@ class Game extends Sprite
                 this.board = new Board();
                 addChild(this.board);
 
-                for(x in 0...SIZE) {
-                    for(y in 0...SIZE)
+                for(tileX in 0...SIZE) {
+                    for(tileY in 0...SIZE)
                     {
                         var _id = socket.readUnsignedByte();
 
@@ -1092,10 +1127,12 @@ class Game extends Sprite
                         {
                             var player = this.players.get(_id);
                             var color = player.color;
-                            this.board.dots[x][y].changeColor(_id, color);
+                            // this.board.dots[x][y].changeColor(_id, color);
+                            this.paintDot(_id, tileX, tileY);
                         }
                         else {
-                            this.board.dots[x][y].changeColor(_id, Dot.DEFAULT_COLOR);
+                            // this.board.dots[x][y].changeColor(_id, Dot.DEFAULT_COLOR);
+                            this.paintDot(-1, tileX, tileY);
                         }
                     }
                 }
@@ -1117,15 +1154,17 @@ class Game extends Sprite
             if(msgType == CST.DOT_COLOR)
             {
                 var _id = socket.readUnsignedByte();
-                var posx = socket.readUnsignedByte();
-                var posy = socket.readUnsignedByte();
+                var tileX = socket.readUnsignedByte();
+                var tileY = socket.readUnsignedByte();
 
                 // IF PLAYER PLAY
                 if(_id != 0)
                 {
-                    var player = this.players.get(_id);
-                    var color:Int = player.color;
-                    this.board.dots[posx][posy].changeColor(_id, color);
+                    // var player = this.players.get(_id);
+                    this.paintDot(_id, tileX, tileY);
+                    // var color:Int = player.color;
+                    // this.board.dots[posx][posy].changeColor(_id, color);
+                    // this.ranks.get(_id).updateProgression(50);
 
                     // IF MYSELF
                     if(_id == this.id)
@@ -1135,7 +1174,8 @@ class Game extends Sprite
                 }
                 // IF BACK TO DEFAULT DOT
                 else {
-                    this.board.dots[posx][posy].changeColor(_id, Dot.DEFAULT_COLOR);
+                    // this.board.dots[posx][posy].changeColor(_id, Dot.DEFAULT_COLOR);
+                    this.paintDot(-1, tileX, tileY);
                 }
             }
 
