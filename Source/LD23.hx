@@ -806,25 +806,31 @@ class Game extends Sprite
 
         // Events listeners
         this.addEventListener(Event.ENTER_FRAME, onEnterFrame);
+
+
     }
 
 
     private function popWin(nick:String)
     {
-        var winX = openfl.Lib.current.stage.stageWidth / 2 - 100;
+        trace("POP WIN");
+        var winX = 50;
         var winY = openfl.Lib.current.stage.stageHeight / 2;
 
         this.winText = Tool.getTextField(winX, winY, nick + " Won", 50);
-        this.winText.width = 800;
+        this.winText.textColor = 0xfff8a4a4;
+        // this.winText.width = 800;
         this.addChild(this.winText);
 
-        this.winTimer = new haxe.Timer(3000);
-        this.winTimer.run = dePopWin;
+        Actuate.timer(3).onComplete(function() { dePopWin(); });
+
+        // this.winTimer = new haxe.Timer(3000);
+        // this.winTimer.run = dePopWin;
     }
 
     private function dePopWin()
     {
-        this.winTimer.stop();
+        // this.winTimer.stop();
         this.removeChild(this.winText);
     }
 
@@ -1193,9 +1199,12 @@ class Game extends Sprite
 
             if(msgType == CST.WIN)
             {
+                trace("PLAYER WON");
                 var _id = socket.readUnsignedByte();
                 var nick = this.players.get(_id).nick;
                 popWin(nick);
+
+                for(player in players) player.dots = 0;
             }
 
             // CLIENT-SIDE ?
@@ -1240,7 +1249,8 @@ class Game extends Sprite
 }
 
 
-class LD23 extends Sprite {
+class LD23 extends Sprite
+{
     private var login:TextField;
     private var intro:Bitmap;
 

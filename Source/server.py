@@ -103,23 +103,23 @@ def read_policy():
 
 class Game:
     def __init__(self):
+        self.clear_world()
         self.players = {}
         self.pillars = []
         self.towers = []
-        self.gen_world()
         self.tower_time = time.time()
         self.pillar_time = time.time()
 
         # LOOPS
-        self.l = task.LoopingCall(self.game_loop)
-        self.l.start(1 / 10.)
+        self.task_game = task.LoopingCall(self.game_loop)
+        self.task_game.start(1 / 10.)
 
-        self.l = task.LoopingCall(self.generate_ranking)
-        self.l.start(3)
+        self.task_rank = task.LoopingCall(self.generate_ranking)
+        self.task_rank.start(3)
 
-        print("NEW GAME")
+        print("NEW GAME ", id(self))
 
-    def gen_world(self):
+    def clear_world(self):
         for x in range(0, CST.SIZE):
             for y in range(0, CST.SIZE):
                 mg.world[(x, y)] = 0
@@ -153,6 +153,8 @@ class Game:
             if player.dots > CST.WIN_DOTS:
                 log("Game won by " + player.nick)
                 mg.broadcast(struct.pack("!BB", CST.WIN, player.id))
+                self.task_game.stop()
+                self.task_rank.stop()
                 self.restart()
                 break
 
@@ -184,13 +186,19 @@ class Game:
             self.pillar_time = time.time()
 
     def restart(self):
+        for tower in self.towers:
+            tower.destroy()
+
+        for pillar in self.pillars:
+            pillar.destroy()
+
+
+        mg.game = Game()
+        mg.broadcast(get_map_struct(self.get_world()))
+
+        # DO REASSIGN NEW PLAYER TO .PLAYER
         for conn in mg.connections.values():
             conn.reset()
-
-        self.gen_world()
-        exp_world = self.get_world()
-        mg.broadcast(get_map_struct(exp_world))
-
 
 
 class Player:
@@ -216,12 +224,16 @@ class Player:
             self.energy = 0
 
 
+
 class Connection(WebSocketServerProtocol):
     _ids = list(range(1, 255))
 
     def __init__(self):
         super().__init__()
         self.player = None
+        self.color = None
+        self.id = None
+        self.nick = ""
         self.tosend = b''
 
         self.last_frame_time = time.time()
@@ -243,6 +255,15 @@ class Connection(WebSocketServerProtocol):
     def dec(self, string):
         return string.decode("utf-8")
 
+    def new_player(self):
+        player = Player()
+        player.id = self.id
+        player.nick = self.nick
+        player.color = self.color
+        mg.game.players[self.id] = player
+
+        return player
+
     def onMessage(self, data, isBinary):
         ## echo back message verbatim
 
@@ -258,15 +279,14 @@ class Connection(WebSocketServerProtocol):
                 print("Num connections", len(mg.connections.values()))
                 self.tosend = b''
 
-                # NEW PLAYER
-                self.player = Player()
-                self.player.id = self.id
-                mg.game.players[self.id] = self.player
-                self.player.nick = bs.read_UTF().decode("utf-8")
+                # NICKNAME
+                self.nick = bs.read_UTF().decode("utf-8")
 
                 # RANDOM COLOR
                 color, = randomcolor.RandomColor().generate(luminosity="light")
-                self.player.color = int("0x" + color[1:], 16)
+                self.color = int("0x" + color[1:], 16)
+
+                self.player = self.new_player()
 
                 self.REALLY_connected = 1  # HOHO
                 log("Connection from " + str(self.player.nick))
@@ -384,12 +404,8 @@ class Connection(WebSocketServerProtocol):
                 mg.broadcast(struct.pack("!4B", CST.DOT_COLOR, 0, posx, posy))  # only client-side please
 
     def reset(self):
-        pass
-        # for tower in self.towers:
-        #     Tower._registry.remove(tower)
-
-        # self.towers = []
-        # self.dots = 0
+        print("new player")
+        self.player = self.new_player()
 
     def disconnect(self):
         self._ids.append(self.id)
@@ -447,10 +463,7 @@ def get_map_struct(world):
     return struct.pack("!BB" + str(CST.SIZE ** 2) + "B", CST.MAP, CST.SIZE, *world)
 
 
-
 class GameServer(WebSocketServerFactory):
-    game_running = False
-
     def __init__(self, uri):
         WebSocketServerFactory.__init__(self, uri)
         mg.game = Game()

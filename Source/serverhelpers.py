@@ -909,7 +909,7 @@ CST.DOT_COST = 1
 CST.DOT_REGEN = 3
 CST.SECTOR_COST = 25
 CST.ENERGY_DEFAULT = 100
-CST.WIN_DOTS = (Math.pow(27,2) * 0.8)
+CST.WIN_DOTS = 10
 python_Boot.keywords = set(["and", "del", "from", "not", "with", "as", "elif", "global", "or", "yield", "assert", "else", "if", "pass", "None", "break", "except", "import", "raise", "True", "class", "exec", "in", "return", "False", "continue", "finally", "is", "try", "def", "for", "lambda", "while"])
 python_Boot.prefixLength = len("_hx_")
 
