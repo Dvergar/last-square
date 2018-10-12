@@ -8,7 +8,7 @@ from typing import *
 from twisted.internet import reactor
 from twisted.internet import task
 from twisted.python import log
-# from twisted.web import static, server
+from twisted.web import static, server
 
 from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketServerProtocol
 import randomcolor
@@ -149,7 +149,6 @@ class Game:
         # Also check end of the game
         for player in self.players.values():
             # if player.dots > CST.SIZE ** 2 / (0.8 * self.active_players()):
-            print(player.dots, CST.WIN_DOTS)
             if player.dots > CST.WIN_DOTS:
                 log("Game won by " + player.nick)
                 mg.broadcast(struct.pack("!BB", CST.WIN, player.id))
@@ -186,13 +185,14 @@ class Game:
             self.pillar_time = time.time()
 
     def restart(self):
+        # WORLD CLEANUP
         for tower in self.towers:
             tower.destroy()
 
         for pillar in self.pillars:
             pillar.destroy()
 
-
+        # NEW GAME NEW WORLD
         mg.game = Game()
         mg.broadcast(get_map_struct(self.get_world()))
 
@@ -386,11 +386,12 @@ class Connection(WebSocketServerProtocol):
 
     def onClose(self, wasClean, code, reason):
         log("Connection lost...")
-        for tower in reversed(self.player.towers):
-            tower.destroy()
+        if self.player is not None:
+            for tower in reversed(self.player.towers):
+                tower.destroy()
 
-        for pillar in reversed(self.player.pillars):
-            pillar.destroy()
+            for pillar in reversed(self.player.pillars):
+                pillar.destroy()
 
         if self in mg.connections.values():
             # log("...from " + self.nick)
@@ -479,8 +480,8 @@ if __name__ == '__main__':
     game_server.protocol = Connection
     reactor.listenTCP(9999, game_server)
     # Web server
-    # root = static.File("../Export/flash/bin/")
-    # web_server = server.Site(root)
-    # reactor.listenTCP(8008, web_server)
+    root = static.File("site/")
+    web_server = server.Site(root)
+    reactor.listenTCP(8008, web_server)
 
     reactor.run()

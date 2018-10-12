@@ -790,14 +790,20 @@ class Game extends Sprite
         // var fps = new nme.display.FPS();
         // fps.x = 50;
         // this.addChild(fps);
+        // trace(haxe.Resource.getString("ip"));
+        // trace(Assets.getText("assets/ip.txt"));
 
         // SOCKET
         this.socket = new Socket();
         this.socket.endian = BIG_ENDIAN;
-        // this.socket.connect("caribou.servebeer.com", 9999);
-        // this.socket.connect("carib0u.dyndns.org", 9999);
-        this.socket.connect("127.0.0.1", 9999);
-        // this.socket.connect("192.168.1.42", 9999);
+
+        #if deploy
+        this.socket.connect("caribou.servegame.com", 9999);
+        #else
+        // this.socket.connect("127.0.0.1", 9999);
+        this.socket.connect("192.168.1.42", 9999);
+        #end
+
         this.socket.addEventListener(Event.CONNECT, onConnect);
         this.socket.addEventListener(ProgressEvent.SOCKET_DATA, dataHandler); 
         this.socket.addEventListener(SecurityErrorEvent.SECURITY_ERROR, onSecError);
