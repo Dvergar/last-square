@@ -340,6 +340,35 @@ class Tool
 }
 
 
+class Color
+{
+    public static inline function toRGB(color:Int)
+    {
+        var r = ((color >> 16) & 255) / 255;
+        var g = ((color >> 8) & 255) / 255;
+        var b = (color & 255) / 255;
+        
+        return [r, g, b];
+    }
+
+    public static inline function shade(color:Int, factor:Float)
+    {
+        var rgb:Array<Float> = toRGB(color);
+
+        var newR = rgb[0] * (1 - factor);
+        var newG = rgb[1] * (1 - factor);
+        var newB = rgb[2] * (1 - factor);
+
+        return toInt(newR, newG, newB);
+    }
+    
+    public static inline function toInt(r:Float, g:Float, b:Float)
+    {
+        return (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
+    }
+}
+
+
 class Dot extends Sprite
 {
     public static inline var DEFAULT_COLOR = 0x542437;
@@ -355,11 +384,24 @@ class Dot extends Sprite
         // this.color = DEFAULT_COLOR;
     }
 
-    private function createDot(color:Int) {
+    function animate(y:Int)
+    {
         this.graphics.clear();
         this.graphics.beginFill(color);
-        this.graphics.drawRect(0, 0, SIZE, SIZE);
+        this.graphics.drawRect(0, y, SIZE, SIZE);
         this.graphics.endFill();
+        this.graphics.beginFill(Color.shade(color, 0.5));
+        this.graphics.drawRect(0, y + SIZE, SIZE, y*-1);
+        this.graphics.endFill();
+    }
+
+    private function createDot(color:Int) {
+        // this.graphics.clear();
+        // this.graphics.beginFill(color);
+        // this.graphics.drawRect(0, 0, SIZE, SIZE);
+        // this.graphics.endFill();
+
+        Actuate.update(animate, 2, [-10], [0]);
 
         // CLIENT-SIDE PREDICTION
         // this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 0, 0 ,0);
@@ -377,6 +419,7 @@ class Dot extends Sprite
     public function destroyTower()
     {
         // createDot(this.color, DEFAULT_BORDER_COLOR, DEFAULT_BORDER_SIZE);
+        this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 0, 0 ,0);
     }
 
     public function focusDot(newColor:Int)
@@ -800,8 +843,8 @@ class Game extends Sprite
         #if deploy
         this.socket.connect("caribou.servegame.com", 9999);
         #else
-        // this.socket.connect("127.0.0.1", 9999);
-        this.socket.connect("192.168.1.42", 9999);
+        this.socket.connect("127.0.0.1", 9999);
+        // this.socket.connect("192.168.1.42", 9999);
         #end
 
         this.socket.addEventListener(Event.CONNECT, onConnect);
@@ -1091,7 +1134,7 @@ class Game extends Sprite
                 else
                 {
                     var i = pillars.length;
-                    while (i-- >= 0)
+                    while (i-- >= 0) // ???
                     {
                         if(pillars[i].ownerId == ownerId)
                         {
@@ -1297,7 +1340,7 @@ class LD23 extends Sprite
 
     private function onMouseClick(event:MouseEvent) {
         // DEBUG
-        popGame();
+        // popGame();
     }
 
     private function onKeyDown(event:KeyboardEvent) {

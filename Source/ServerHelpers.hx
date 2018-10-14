@@ -145,6 +145,7 @@ class Tower
         trace("Tower destroy");
         // _registry.remove(this);
         this.owner.player.towers.remove(this);
+        this.mg.game.towers.remove(this);
         ToolHx.broadcast_hx(this.mg, ["!4B", CST.TOWER, 0, this.x, this.y]);
 	}
 }
@@ -154,7 +155,7 @@ class Tower
 class Pillar
 {
 	// public static var _registry:Array<Pillar> = new Array();
-	private var manager:Manager;
+	private var mg:Manager;
 	private var owner:Connection;
 	private var x:Int;
 	private var y:Int;
@@ -163,7 +164,7 @@ class Pillar
 	public function new(manager:Manager, x:Int, y:Int, owner:Connection)
 	{
 		// _registry.push(this);
-		this.manager = manager;
+		this.mg = manager;
 		this.owner = owner;
 		this.x = x;
 		this.y = y;
@@ -201,7 +202,7 @@ class Pillar
                 this.owner.push_dot(x, y);
         }
 
-        ToolHx.broadcast_hx(this.manager, ["!6B", CST.PILLAR_ATTACK, this.owner.id, this.x, this.y, target_x, target_y]);
+        ToolHx.broadcast_hx(this.mg, ["!6B", CST.PILLAR_ATTACK, this.owner.id, this.x, this.y, target_x, target_y]);
     }
 
     public function destroy()
@@ -209,6 +210,7 @@ class Pillar
         trace("Pillar destroy");
         // _registry.remove(this);
         this.owner.player.pillars.remove(this);
-        ToolHx.broadcast_hx(this.manager, ["!4B", CST.PILLAR, 0, this.x, this.y]);
+        this.mg.game.pillars.remove(this);
+        ToolHx.broadcast_hx(this.mg, ["!4B", CST.PILLAR, 0, this.x, this.y]);
     }
 }

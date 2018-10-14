@@ -281,6 +281,7 @@ class Connection(WebSocketServerProtocol):
 
                 # NICKNAME
                 self.nick = bs.read_UTF().decode("utf-8")
+                log("Connection from " + str(self.nick))
 
                 # RANDOM COLOR
                 color, = randomcolor.RandomColor().generate(luminosity="light")
@@ -289,9 +290,8 @@ class Connection(WebSocketServerProtocol):
                 self.player = self.new_player()
 
                 self.REALLY_connected = 1  # HOHO
-                log("Connection from " + str(self.player.nick))
 
-                # send connected players data
+                # BROADCAST CONNECTION
                 for connection in mg.connections.values():
                     if connection.REALLY_connected:
                         if connection != self:
@@ -301,13 +301,11 @@ class Connection(WebSocketServerProtocol):
                             connection.send(self.get_datas_connection())
                         else:
                             # Send me to me
-                            self.send(struct.pack("!BBH8siB", CST.CONNECTION,
-                                                    self.id, 8,
-                                                    self.enc(self.player.nick), self.player.color, 1))
+                            self.send(self.get_datas_connection(me=1))
 
                 # MAP
-                exp_world = mg.game.get_world()
-                self.send(get_map_struct(exp_world))
+                flat_world = mg.game.get_world()
+                self.send(get_map_struct(flat_world))
 
                 # SEND TOWERS
                 for pillar in mg.game.pillars:
@@ -317,6 +315,7 @@ class Connection(WebSocketServerProtocol):
 
             if msg_type == CST.DOT_COLOR:
                 posx, posy = int(bs.read_byte()), int(bs.read_byte())
+                
                 if self.player.energy > CST.DOT_COST:
                     pushed = self.push_dot(posx, posy)
                     if pushed:
@@ -349,23 +348,26 @@ class Connection(WebSocketServerProtocol):
             if msg_type == CST.PILLAR:
                 log("Pillar create")
                 x, y = int(bs.read_byte()), int(bs.read_byte())
-                # if self.energy_max // CST.SECTOR_COST > 2:
-                buildable = True
 
-                if Tool.valid_position(x, y):
-                    if mg.world[x, y] != self.id:
+                if self.player.energy > 50:
+                    buildable = True
+
+                    if Tool.valid_position(x, y):
+                        if mg.world[x, y] != self.id:
+                            buildable = False
+                    else:
                         buildable = False
-                else:
-                    buildable = False
 
-                if buildable:
-                    print("buildable")
-                    mg.broadcast(struct.pack("!5B", CST.PILLAR, 1, self.id, x, y))
-                    mg.game.pillars.append(Pillar(mg, x, y, self))
+                    if buildable:
+                        print("buildable")
+                        mg.broadcast(struct.pack("!5B", CST.PILLAR, 1, self.id, x, y))
+                        mg.game.pillars.append(Pillar(mg, x, y, self))
+                        self.player.energy -= 50
 
 
             if msg_type == CST.MESSAGE:
                 chatmsg = bs.read_UTF()
+
                 log(self.nick + " > " + self.dec(chatmsg))
                 chatstruct = "!BBH" + str(len(chatmsg)) + "s"
 
@@ -452,9 +454,9 @@ class Connection(WebSocketServerProtocol):
 
         self.last_frame_time = time.time()
 
-    def get_datas_connection(self):
+    def get_datas_connection(self, me=0):
         return struct.pack("!BBH8siB", CST.CONNECTION, self.id, 8,
-                                        self.enc(self.nick), self.color, 0)
+                                        self.enc(self.nick), self.color, me)
 
     def get_datas_update(self):
         return struct.pack("!3B", CST.UPDATE, int(self.player.energy), int(self.player.energy_max))

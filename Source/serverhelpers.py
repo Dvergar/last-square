@@ -154,18 +154,19 @@ class Tower:
     def destroy(self):
         print("Tower destroy")
         Reflect.field(Reflect.field(self.owner.player,"towers"),"remove")(self)
+        Reflect.field(Reflect.field(self.mg.game,"towers"),"remove")(self)
         ToolHx.broadcast_hx(self.mg,["!4B", 7, 0, self.x, self.y])
 
 
 
 class Pillar:
     _hx_class_name = "Pillar"
-    __slots__ = ("manager", "owner", "x", "y", "checklist")
-    _hx_fields = ["manager", "owner", "x", "y", "checklist"]
+    __slots__ = ("mg", "owner", "x", "y", "checklist")
+    _hx_fields = ["mg", "owner", "x", "y", "checklist"]
     _hx_methods = ["attack", "destroy"]
 
     def __init__(self,manager,x,y,owner):
-        self.manager = manager
+        self.mg = manager
         self.owner = owner
         self.x = x
         self.y = y
@@ -204,12 +205,13 @@ class Pillar:
             y = ((self.y + y_off) + (delta[1] if 1 < len(delta) else None))
             if Tool.valid_position(x2,y):
                 self.owner.push_dot(x2,y)
-        ToolHx.broadcast_hx(self.manager,["!6B", 11, self.owner.id, self.x, self.y, target_x, target_y])
+        ToolHx.broadcast_hx(self.mg,["!6B", 11, self.owner.id, self.x, self.y, target_x, target_y])
 
     def destroy(self):
         print("Pillar destroy")
         Reflect.field(Reflect.field(self.owner.player,"pillars"),"remove")(self)
-        ToolHx.broadcast_hx(self.manager,["!4B", 10, 0, self.x, self.y])
+        Reflect.field(Reflect.field(self.mg.game,"pillars"),"remove")(self)
+        ToolHx.broadcast_hx(self.mg,["!4B", 10, 0, self.x, self.y])
 
 
 
@@ -906,7 +908,7 @@ CST.PILLAR = 10
 CST.PILLAR_ATTACK = 11
 CST.SIZE = 27
 CST.DOT_COST = 1
-CST.DOT_REGEN = 30
+CST.DOT_REGEN = 3
 CST.SECTOR_COST = 25
 CST.ENERGY_DEFAULT = 100
 CST.WIN_DOTS = (Math.pow(27,2) * 0.8)
