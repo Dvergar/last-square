@@ -505,7 +505,7 @@ class Bar extends Sprite
                     realWidth, HEIGHT - pad);
         this.content.graphics.endFill();
         // Positioning from container because scaling is buggy
-        this.content.x = pad / 2;
+        // this.content.x = pad / 2;
         this.addChild(this.content);
 
         // Line
@@ -604,7 +604,6 @@ class SkillIcon extends Sprite
         {
             if(!unlocked)
             {
-                // transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64, 64);
                 this.addChild(getBitmap(skillName + "_unlocked"));
                 unlocked = true;
             }
