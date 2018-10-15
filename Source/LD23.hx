@@ -529,7 +529,7 @@ class Bar extends Sprite
             this.addChild(tline);
         }
 
-        // PLACE SKILLS
+        // POSITION SKILLS
         function makeSkillIcon(skillNum:Int, bmpPath:String):Sprite
         {
             var sprite = new Sprite();
@@ -546,8 +546,8 @@ class Bar extends Sprite
             return sprite;
         }
 
-        this.skills = [new SkillIcon(1, "assets/cross.png", xTower, yTower),
-                       new SkillIcon(2, "assets/tower.png", xTower, yTower)];
+        this.skills = [new SkillIcon(1, "cross", xTower, yTower),
+                       new SkillIcon(2, "tower", xTower, yTower)];
 
         for(skill in skills) addChild(skill);
     }
@@ -565,23 +565,21 @@ class Bar extends Sprite
 class SkillIcon extends Sprite
 {
     public var description:String;
+    var skillName:String;
     var num:Int;
     var unlocked = false;
     var available = false;
 
-    public function new(num:Int, bmpPath:String, x:Float, y:Float)
+    public function new(num:Int, skillName:String, x:Float, y:Float)
     {
         super();
 
+        this.skillName = skillName;
         this.num = num;
         this.x = num * x;
         this.y = y + 55;
 
-        var bmp = new Bitmap(Assets.getBitmapData(bmpPath));
-        bmp.x -= bmp.width / 2;
-        bmp.y -= bmp.height / 2;
-
-        this.addChild(bmp);
+        this.addChild(getBitmap(skillName));
 
         // MOVE THIS TO DATA CLASS
         if(num == 1)
@@ -590,13 +588,24 @@ class SkillIcon extends Sprite
             this.description = "Skill that create a tower and will fire dot every X seconds";
     }
 
+    function getBitmap(imageName:String)
+    {
+        var bmpPath = "assets/" + imageName + ".png";
+        var bmp = new Bitmap(Assets.getBitmapData(bmpPath));
+        bmp.x -= bmp.width / 2;
+        bmp.y -= bmp.height / 2;
+
+        return bmp;
+    }
+
     public function update(energy:Float, energyMax:Float)
     {
         if(energyMax > 25 * num)
         {
             if(!unlocked)
             {
-                transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64, 64);
+                // transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 64, 64, 64);
+                this.addChild(getBitmap(skillName + "_unlocked"));
                 unlocked = true;
             }
         }
