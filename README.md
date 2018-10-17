@@ -10,5 +10,6 @@ Reviving an old Ludum dare game...
 - [x] Fixed color generation
 - [x] Change awful sounds
 - [ ] Deterministic energy regen
+- [ ] More visual feedback on the pointer
 
 PS : Be careful, that's some unsexy jam code.

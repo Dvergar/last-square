@@ -9,6 +9,7 @@ import openfl.Assets;
 import openfl.Lib;
 import openfl.text.TextField;
 import openfl.text.TextFormat;
+import openfl.text.TextFormatAlign;
 import openfl.text.TextFieldAutoSize;
 import openfl.events.KeyboardEvent;
 import openfl.events.MouseEvent;
@@ -322,11 +323,14 @@ class Tool
     static inline public function ToTileY(y:Float):Int
         return Std.int((y - Game.BOARD_MARGIN_Y) / Dot.SIZE);
 
-    static inline public function getTextField(x:Float, y:Float, text:String, size:Int)
+    static inline public function getTextField(x:Float, y:Float,
+                                               text:String, size:Int,
+                                               align = TextFormatAlign.LEFT)
     {
         var font = Assets.getFont(Game.FONT);
-        var format = new TextFormat (font.fontName); 
+        var format = new TextFormat(font.fontName); 
         format.size = size;
+        format.align = align;
 
         var textField = new TextField();
         textField.defaultTextFormat = format;
@@ -1319,17 +1323,27 @@ class LD23 extends Sprite
 
     private function popLogin()
     {
+        // BACKGROUND
+        graphics.beginFill(0x3d314a);
+        graphics.drawRect(0, 0, Lib.current.stage.stageWidth, Lib.current.stage.stageHeight);
+        graphics.endFill();
 
-        var background = new Bitmap(Assets.getBitmapData("assets/login.png"));
-        this.addChild(background);
+        // INPUT BOX GRAPHICS
+        var inputBmp = new Bitmap(Assets.getBitmapData("assets/inputbox.png"));
+        inputBmp.x = Lib.current.stage.stageWidth / 2 - inputBmp.width / 2;
+        inputBmp.y = Lib.current.stage.stageHeight / 2 - inputBmp.height / 2;
+        this.addChild(inputBmp);
 
-        this.login = Tool.getTextField(0, 0, "Guest", 10);
+        // INPUT TEXTFIELD
+        this.login = Tool.getTextField(0, 0, "Guest", 80, TextFormatAlign.CENTER);
         this.login.type = openfl.text.TextFieldType.INPUT;
         this.login.maxChars = 8;
-        this.login.height = 20;
+        this.login.height = inputBmp.height;
+        this.login.width = inputBmp.width;
         this.login.border = true;
-        this.login.x = openfl.Lib.current.stage.stageWidth / 2 - this.login.width / 2;
-        this.login.y = openfl.Lib.current.stage.stageWidth / 2 - 100;
+        this.login.textColor = 0xD95B43;
+        this.login.x = Lib.current.stage.stageWidth / 2 - this.login.width / 2;
+        this.login.y = Lib.current.stage.stageHeight / 2 - this.login.height / 2 + 10;
         this.addChild(this.login);
 
         // PREVENT RIGHT CLICK
