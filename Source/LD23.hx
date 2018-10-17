@@ -1340,7 +1340,6 @@ class LD23 extends Sprite
         this.login.maxChars = 8;
         this.login.height = inputBmp.height;
         this.login.width = inputBmp.width;
-        this.login.border = true;
         this.login.textColor = 0xD95B43;
         this.login.x = Lib.current.stage.stageWidth / 2 - this.login.width / 2;
         this.login.y = Lib.current.stage.stageHeight / 2 - this.login.height / 2 + 10;
