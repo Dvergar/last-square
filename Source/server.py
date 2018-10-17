@@ -395,16 +395,15 @@ class Connection(WebSocketServerProtocol):
             for pillar in reversed(self.player.pillars):
                 pillar.destroy()
 
-        if self in mg.connections.values():
-            # log("...from " + self.nick)
-            mg.broadcast(struct.pack("!BB", CST.DISCONNECTION, self.id))
-
-        self.disconnect()  # Here and not above !
-
         for (posx, posy), _id in mg.world.items():
             if _id == self.id:
                 mg.world[posx, posy] = 0
                 mg.broadcast(struct.pack("!4B", CST.DOT_COLOR, 0, posx, posy))  # only client-side please
+
+        if self in mg.connections.values():
+            mg.broadcast(struct.pack("!BB", CST.DISCONNECTION, self.id))
+
+        self.disconnect()
 
     def reset(self):
         print("new player")

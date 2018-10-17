@@ -1100,6 +1100,7 @@ class Game extends Sprite
             if(msgType == CST.DISCONNECTION)
             {
                 var _id = socket.readUnsignedByte();
+                trace(_id + " disconnected");
                 for(player in this.players) {
                 }
                 var rank = this.ranks.get(_id);
@@ -1361,7 +1362,7 @@ class LD23 extends Sprite
 
     private function onMouseClick(event:MouseEvent) {
         // DEBUG
-        // popGame();
+        popGame();
     }
 
     private function onKeyDown(event:KeyboardEvent) {
