@@ -1167,7 +1167,7 @@ class Game extends Sprite
                 var sourceY = socket.readUnsignedByte();
                 var targetX = socket.readUnsignedByte();
                 var targetY = socket.readUnsignedByte();
-                Pillar.attack(player.color, sourceX, sourceY, targetX, targetY);
+                Pillar.attack(player.color, sourceX, sourceY, targetX, targetY); // color of undefined
             }
 
             if(msgType == CST.UPDATE)
@@ -1362,7 +1362,10 @@ class LD23 extends Sprite
 
     private function onMouseClick(event:MouseEvent) {
         // DEBUG
+        #if deploy
+        #else
         popGame();
+        #end
     }
 
     private function onKeyDown(event:KeyboardEvent) {

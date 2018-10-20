@@ -11,5 +11,6 @@ Reviving an old Ludum dare game...
 - [x] Change awful sounds
 - [ ] Deterministic energy regen
 - [ ] More visual feedback on the pointer
+- [ ] Move most of the server to haxe
 
 PS : Be careful, that's some unsexy jam code.
