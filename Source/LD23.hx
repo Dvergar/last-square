@@ -305,19 +305,19 @@ class Pillar extends Sprite
 
 class Tool
 {
-    static inline public inline function ToPixelX2(tileX:Int)
+    static inline public function ToPixelX2(tileX:Int)
         return tileX * Dot.SIZE;
 
     static inline public function ToPixelY2(tileY:Int)
         return tileY * Dot.SIZE;
 
-    static inline public inline function ToPixelX(tileX:Int)
+    static inline public function ToPixelX(tileX:Int)
         return Game.BOARD_MARGIN_X + tileX * Dot.SIZE;
 
     static inline public function ToPixelY(tileY:Int)
         return Game.BOARD_MARGIN_Y + tileY * Dot.SIZE;
 
-    static inline public inline function ToTileX(x:Float):Int
+    static inline public function ToTileX(x:Float):Int
         return Std.int((x - Game.BOARD_MARGIN_X) / Dot.SIZE);
 
     static inline public function ToTileY(y:Float):Int
@@ -659,15 +659,38 @@ class Cursor extends Sprite
                    new Bitmap(Assets.getBitmapData("assets/cursor_cross.png")),
                    new Bitmap(Assets.getBitmapData("assets/cursor_pillar.png"))];
 
+    var contour = new Shape();
+
     public function new()
     {
         super();
 
+        this.mouseEnabled = false;
+
+        // CONTOUR
+        var contourSize = 3 * Dot.SIZE;
+        contour.graphics.lineStyle(2, 0xffffff);
+        contour.graphics.beginFill(0xffffff, 0);
+        contour.graphics.drawRect(-Dot.SIZE, -Dot.SIZE, contourSize, contourSize);
+        contour.graphics.endFill();
+        this.addChild(contour);
+        contour.alpha = 0;
+
+        // BITMAPS POINTERS
         for(bitmap in bitmaps)
         {
             bitmap.alpha = 0;
             this.addChild(bitmap);
         }
+    }
+
+    public function cantBuild()
+    {
+        trace("cantbuild");
+        Actuate.stop(contour);
+        contour.visible = true;
+        contour.alpha = 1;
+        Actuate.tween(contour, 1, {alpha: 0});
     }
 
     public function switchTo(num:Int)
@@ -853,6 +876,7 @@ class Game extends Sprite
         this.socket.endian = BIG_ENDIAN;
 
         #if deploy
+        trace("Deploy build");
         this.socket.connect("caribou.servegame.com", 9999);
         #else
         this.socket.connect("127.0.0.1", 9999);
@@ -936,6 +960,7 @@ class Game extends Sprite
         var tileY = Tool.ToTileY(event.stageY);
 
         // BOARD ZONE
+        // if(tileX >= 0 && tileX < CST.SIZE && tileY >= 0 && tileY < CST.SIZE)
         if(Std.is(event.target, Dot))
         {
             cursor.setPosition(tileX, tileY);
@@ -979,6 +1004,8 @@ class Game extends Sprite
                 socket.writeByte(CST.TOWER);
                 socket.writeByte(tileX);
                 socket.writeByte(tileY);
+
+                cursor.cantBuild();
             }
         }
     }

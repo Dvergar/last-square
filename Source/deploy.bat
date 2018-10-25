@@ -1,6 +1,6 @@
 REM CLIENT BUILD 
 
-openfl build ..\LD23.xml html5 -Ddeploy
+openfl build ..\LD23.xml html5 -D deploy
 REM SERVER BUILD
 
 haxe -main ServerHelpers -python serverhelpers.py
