@@ -181,6 +181,7 @@ class Game:
 
         if time.time() - self.pillar_time > 1:
             for pillar in mg.game.pillars:
+                print("pillar attack")
                 pillar.attack()
             self.pillar_time = time.time()
 
@@ -341,7 +342,7 @@ class Connection(WebSocketServerProtocol):
                     if buildable:
                         print("buildable")
                         mg.broadcast(struct.pack("!4B", CST.TOWER, 1, x, y))
-                        mg.game.towers.append(Tower(mg, x, y, self))
+                        Tower(mg, x, y, self)
                         self.player.energy -= 25
 
 
@@ -349,7 +350,8 @@ class Connection(WebSocketServerProtocol):
                 log("Pillar create")
                 x, y = int(bs.read_byte()), int(bs.read_byte())
 
-                if self.player.energy > 50:
+                # if self.player.energy > 50:
+                if self.player.energy > 0:
                     buildable = True
 
                     if Tool.valid_position(x, y):
@@ -361,7 +363,7 @@ class Connection(WebSocketServerProtocol):
                     if buildable:
                         print("buildable")
                         mg.broadcast(struct.pack("!5B", CST.PILLAR, 1, self.id, x, y))
-                        mg.game.pillars.append(Pillar(mg, x, y, self))
+                        Pillar(mg, x, y, self)
                         self.player.energy -= 50
 
 
@@ -387,7 +389,7 @@ class Connection(WebSocketServerProtocol):
             self.disconnect()
 
     def onClose(self, wasClean, code, reason):
-        log("Connection lost...")
+        print("Connection lost...", self.id)
         if self.player is not None:
             for tower in reversed(self.player.towers):
                 tower.destroy()
@@ -406,10 +408,11 @@ class Connection(WebSocketServerProtocol):
         self.disconnect()
 
     def reset(self):
-        print("new player")
+        print("Reset -> new player")
         self.player = self.new_player()
 
     def disconnect(self):
+        print("Disconnect : ", self.id)
         self._ids.append(self.id)
 
         if self in mg.connections.values():

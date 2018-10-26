@@ -117,6 +117,16 @@ class Tower:
     _hx_methods = ["propagate", "destroy"]
 
     def __init__(self,manager,x,y,owner):
+        self.down = None
+        self.up = None
+        self.right = None
+        self.left = None
+        self.y = None
+        self.x = None
+        self.owner = None
+        self.mg = None
+        Reflect.field(Reflect.field(owner.player,"towers"),"append")(self)
+        Reflect.field(Reflect.field(manager.game,"towers"),"append")(self)
         self.mg = manager
         self.owner = owner
         self.x = x
@@ -166,6 +176,13 @@ class Pillar:
     _hx_methods = ["attack", "destroy"]
 
     def __init__(self,manager,x,y,owner):
+        self.checklist = None
+        self.y = None
+        self.x = None
+        self.owner = None
+        self.mg = None
+        Reflect.field(Reflect.field(owner.player,"pillars"),"append")(self)
+        Reflect.field(Reflect.field(manager.game,"pillars"),"append")(self)
         self.mg = manager
         self.owner = owner
         self.x = x
@@ -211,7 +228,7 @@ class Pillar:
         print("Pillar destroy")
         Reflect.field(Reflect.field(self.owner.player,"pillars"),"remove")(self)
         Reflect.field(Reflect.field(self.mg.game,"pillars"),"remove")(self)
-        ToolHx.broadcast_hx(self.mg,["!4B", 10, 0, self.x, self.y])
+        ToolHx.broadcast_hx(self.mg,["!5B", 10, 0, self.owner.id, self.x, self.y])
 
 
 

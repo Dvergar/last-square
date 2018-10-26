@@ -946,7 +946,6 @@ class Game extends Sprite
 
     private function onMouseOver(event:MouseEvent)
     {
-        trace(event.target);
         for(skillIcon in energyBarLF.skills)
         {
             if(event.target == skillIcon)
@@ -969,7 +968,6 @@ class Game extends Sprite
             if(dot.id != this.id && this.LFenergy > CST.DOT_COST)
             {
                 // this.LFenergy -= CST.DOT_COST;
-                trace("hello");
                 this.tick.play();
                 dot.focusDot(this.color);
                 socket.writeByte(CST.DOT_COLOR);
@@ -1098,6 +1096,7 @@ class Game extends Sprite
 
             if(msgType == CST.CONNECTION)
             {
+                trace("CONNECTION");
                 var _id:Int = socket.readUnsignedByte();
                 var nick:String = socket.readUTF();
                 var color:Int = socket.readInt();
@@ -1157,16 +1156,18 @@ class Game extends Sprite
 
             if(msgType == CST.PILLAR)
             {
-                trace("spawn tower");
+                trace("Pillar");
 
                 var flag = socket.readUnsignedByte();
                 var ownerId = socket.readUnsignedByte();
-                var player = this.players.get(ownerId);
                 var tileX = socket.readUnsignedByte();
                 var tileY = socket.readUnsignedByte();
 
+                var player = this.players.get(ownerId);
+
                 if(flag == 1)
                 {
+                    trace("CREATE PILLAR");
                     var newPillar = new Pillar(ownerId, tileX, tileY, player.color);
                     pillars.push(newPillar);
                     addChild(newPillar);
@@ -1174,20 +1175,24 @@ class Game extends Sprite
                 else
                 {
                     var i = pillars.length;
-                    while (i-- >= 0) // ???
+                    trace(pillars);
+                    while (i-- > 0) // ???
                     {
+                        trace(i);
                         if(pillars[i].ownerId == ownerId)
                         {
+                            trace("DESTROYED PILLAR");
                             removeChild(pillars[i]);
                             pillars.remove(pillars[i]);
                         }
                     }
                 }
+                trace("bloup");
             }
 
             if(msgType == CST.PILLAR_ATTACK)
             {
-                trace("pillarattack");
+                trace("PILLAR_ATTACK");
                 var ownerId = socket.readUnsignedByte();
                 var player = this.players.get(ownerId);
                 var sourceX = socket.readUnsignedByte();
@@ -1276,6 +1281,7 @@ class Game extends Sprite
 
             if(msgType == CST.MESSAGE)
             {
+                trace("MESSAGE");
                 var _id = socket.readUnsignedByte();
                 var chatMsg = socket.readUTF().toUpperCase();
                 trace("Message from " + _id);
@@ -1320,12 +1326,13 @@ class Game extends Sprite
 
     private function onConnect(event:Event)
     {
+        trace("onConnect");
         socket.writeByte(CST.CONNECTION);
         socket.writeUTF(this.nick);
     }
 
     private function onClose(event:Event) {
-        trace("disconnected");
+        trace("onClose");
     }
 
     private function onError(event:Event) {
