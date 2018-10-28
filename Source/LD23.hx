@@ -666,15 +666,7 @@ class Cursor extends Sprite
         super();
 
         this.mouseEnabled = false;
-
-        // CONTOUR
-        var contourSize = 3 * Dot.SIZE;
-        contour.graphics.lineStyle(2, 0xffffff);
-        contour.graphics.beginFill(0xffffff, 0);
-        contour.graphics.drawRect(-Dot.SIZE, -Dot.SIZE, contourSize, contourSize);
-        contour.graphics.endFill();
         this.addChild(contour);
-        contour.alpha = 0;
 
         // BITMAPS POINTERS
         for(bitmap in bitmaps)
@@ -684,13 +676,32 @@ class Cursor extends Sprite
         }
     }
 
-    public function cantBuild()
+    function makeContour(color:Int)
     {
-        trace("cantbuild");
         Actuate.stop(contour);
         contour.visible = true;
         contour.alpha = 1;
+
+        // CONTOUR GRAPHICS
+        var contourSize = 3 * Dot.SIZE;
+        contour.graphics.lineStyle(2, color);
+        contour.graphics.beginFill(0xffffff, 0);
+        contour.graphics.drawRect(-Dot.SIZE, -Dot.SIZE, contourSize, contourSize);
+        contour.graphics.endFill();
+
         Actuate.tween(contour, 1, {alpha: 0});
+    }
+
+    public function cantBuild()
+    {
+        trace("cantBuild");
+        makeContour(0xf44242);
+    }
+
+    public function canBuild()
+    {
+        trace("canBuild");
+        makeContour(0xffffff);
     }
 
     public function switchTo(num:Int)
@@ -858,6 +869,18 @@ class Game extends Sprite
     private var winTimer:haxe.Timer;
     private var winText:TextField;
 
+    // 3x3 CHECKLIST
+    private var checklist:Array<Array<Int>> = [
+                                                [-1, 0],
+                                                [-1, 1],
+                                                [0,  1],
+                                                [1,  1],
+                                                [1,  0],
+                                                [1, -1],
+                                                [0, -1],
+                                                [-1,-1]
+                                               ];
+
     public function new(nick:String)
     {
         super();
@@ -891,8 +914,6 @@ class Game extends Sprite
 
         // Events listeners
         this.addEventListener(Event.ENTER_FRAME, onEnterFrame);
-
-
     }
 
 
@@ -1003,14 +1024,16 @@ class Game extends Sprite
                 socket.writeByte(tileX);
                 socket.writeByte(tileY);
 
-                cursor.cantBuild();
+                if(this.LFenergy < 25)
+                    cursor.cantBuild();
+                else
+                    cursor.canBuild();
             }
         }
     }
 
     private function onRightMouseDown(event:MouseEvent)
     {
-
         var tileX = Tool.ToTileX(event.stageX);
         var tileY = Tool.ToTileY(event.stageY);
 
@@ -1025,6 +1048,22 @@ class Game extends Sprite
                 socket.writeByte(tileY);
             }
         }
+    }
+
+    function valid3x3spot(tileX:Int, tileY:Int):Bool
+    {
+        // var buildable = true;
+
+        for(delta in this.checklist)
+        {
+            var tileDx = tileX + delta[0];
+            var tileDy = tileY + delta[1];
+
+            if(this.board.dots[tileDx][tileDy].id != this.id)
+                return false;
+        }
+
+        return true;
     }
 
     private function onEnterFrame(event:Event):Void
@@ -1083,10 +1122,6 @@ class Game extends Sprite
             this.ranks.get(ownerId).updateProgression(players.get(ownerId).dots);
     }
 
-    // inline function defaultColor(color:Int, player:Player, x:Int, y:Int)
-    // {
-    //     this.board.dots[x][y].changeColor(player.id, color);
-    // }
 
     private function dataHandler(event:ProgressEvent)
     {
