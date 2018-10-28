@@ -10,7 +10,7 @@ Reviving an old Ludum dare game...
 - [x] Fixed color generation
 - [x] Change awful sounds
 - [ ] Deterministic energy regen
-- [ ] More visual feedback on the pointer
+- [x] More visual feedback on the pointer
 - [ ] Move most of the server to haxe
 
 PS : Be careful, that's some unsexy jam code.
