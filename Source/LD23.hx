@@ -385,7 +385,6 @@ class Dot extends Sprite
         this.createDot(DEFAULT_COLOR);
         this.x = Tool.ToPixelX2(tileX);
         this.y = Tool.ToPixelY2(tileY);
-        // this.color = DEFAULT_COLOR;
     }
 
     function animate(y:Int)
@@ -399,16 +398,11 @@ class Dot extends Sprite
         this.graphics.endFill();
     }
 
-    private function createDot(color:Int) {
-        // this.graphics.clear();
-        // this.graphics.beginFill(color);
-        // this.graphics.drawRect(0, 0, SIZE, SIZE);
-        // this.graphics.endFill();
-
+    private function createDot(color:Int)
+    {
         Actuate.update(animate, 2, [-10], [0]);
 
         // CLIENT-SIDE PREDICTION
-        // this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 0, 0 ,0);
         Actuate.stop(this.transform.colorTransform, null, false, false);
         this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 50, 50 ,50);
         Actuate.tween(this.transform.colorTransform, 2, {redOffset:0, greenOffset:0, blueOffset:0});
@@ -416,35 +410,18 @@ class Dot extends Sprite
 
     public function createTower()
     {
-        // createDot(this.color);
         this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 32, 32 ,32);
     }
 
     public function destroyTower()
     {
-        // createDot(this.color, DEFAULT_BORDER_COLOR, DEFAULT_BORDER_SIZE);
         this.transform.colorTransform = new openfl.geom.ColorTransform(1, 1, 1, 1, 0, 0 ,0);
-    }
-
-    public function focusDot(newColor:Int)
-    {
-        // createDot(newColor);
-        // // if(Game.LAGFREE) {
-        //     this.alpha = 0.5;
-        //     Actuate.timer(2).onComplete(function() {
-        //         this.alpha = 1;
-        //         Actuate.stop(this);
-        //         createDot(this.color);
-        //     });
-
-        // // }
     }
 
     public function changeColor(_id:Int, newColor:Int)
     {
         if(Game.LAGFREE) {
             this.alpha = 1;
-            // this.dotTimer.stop();
             Actuate.stop(this);
         }
         createDot(newColor);
@@ -990,7 +967,6 @@ class Game extends Sprite
             {
                 // this.LFenergy -= CST.DOT_COST;
                 this.tick.play();
-                dot.focusDot(this.color);
                 socket.writeByte(CST.DOT_COLOR);
                 socket.writeByte(tileX);
                 socket.writeByte(tileY);
