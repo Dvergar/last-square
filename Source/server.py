@@ -179,7 +179,7 @@ class Game:
                 tower.propagate()
             self.tower_time = time.time()
 
-        if time.time() - self.pillar_time > 1:
+        if time.time() - self.pillar_time > CST.PILLAR_RATE:
             for pillar in mg.game.pillars:
                 print("pillar attack")
                 pillar.attack()

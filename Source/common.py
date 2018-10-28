@@ -36,7 +36,7 @@ class Enum:
 class CST:
     _hx_class_name = "CST"
     __slots__ = ()
-    _hx_statics = ["MESSAGE", "CONNECTION", "DOT_COLOR", "RANKING", "MAP", "DISCONNECTION", "UPDATE", "TOWER", "FULL", "WIN", "PILLAR", "PILLAR_ATTACK", "SIZE", "DOT_COST", "DOT_REGEN", "SECTOR_COST", "ENERGY_DEFAULT", "WIN_DOTS"]
+    _hx_statics = ["MESSAGE", "CONNECTION", "DOT_COLOR", "RANKING", "MAP", "DISCONNECTION", "UPDATE", "TOWER", "FULL", "WIN", "PILLAR", "PILLAR_ATTACK", "SIZE", "DOT_COST", "DOT_REGEN", "SECTOR_COST", "ENERGY_DEFAULT", "PILLAR_RATE", "WIN_DOTS"]
 
     def __init__(self):
         pass
@@ -758,6 +758,7 @@ CST.DOT_COST = 1
 CST.DOT_REGEN = 3
 CST.SECTOR_COST = 25
 CST.ENERGY_DEFAULT = 100
+CST.PILLAR_RATE = 0.5
 CST.WIN_DOTS = (Math.pow(27,2) * 0.8)
 python_Boot.keywords = set(["and", "del", "from", "not", "with", "as", "elif", "global", "or", "yield", "assert", "else", "if", "pass", "None", "break", "except", "import", "raise", "True", "class", "exec", "in", "return", "False", "continue", "finally", "is", "try", "def", "for", "lambda", "while"])
 python_Boot.prefixLength = len("_hx_")

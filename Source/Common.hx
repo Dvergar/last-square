@@ -19,6 +19,7 @@ class CST
 	public static inline var DOT_REGEN = 3;
 	public static inline var SECTOR_COST = 25;
 	public static inline var ENERGY_DEFAULT = 100;
+	public static inline var PILLAR_RATE = 2;
 	public static var WIN_DOTS = Math.pow(SIZE, 2) * 0.8;
 	// public static var WIN_DOTS = 10;
 

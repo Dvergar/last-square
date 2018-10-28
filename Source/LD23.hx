@@ -1000,10 +1000,14 @@ class Game extends Sprite
                 socket.writeByte(tileX);
                 socket.writeByte(tileY);
 
-                if(this.LFenergy < 25)
-                    cursor.cantBuild();
-                else
+                if(valid3x3spot(tileX, tileY) && this.LFenergy > 25)
+                {
                     cursor.canBuild();
+                }
+                else
+                {
+                   cursor.cantBuild();
+                }
             }
         }
     }
